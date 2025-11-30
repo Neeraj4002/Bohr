@@ -9,7 +9,6 @@ interface FadeInProps {
   delay?: number;
   direction?: "up" | "down" | "left" | "right";
   duration?: number;
-  once?: boolean;
 }
 
 export function FadeIn({
@@ -18,7 +17,6 @@ export function FadeIn({
   delay = 0,
   direction = "up",
   duration = 0.3,
-  once = true,
 }: FadeInProps) {
   const directionOffset = {
     up: { y: 8 },

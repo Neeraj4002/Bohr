@@ -273,7 +273,7 @@ export const useTimerStore = create<TimerState>()(
 
       loadSettings: async () => {
         try {
-          const result = await db.select<any[]>('SELECT * FROM user_settings LIMIT 1');
+          const result = await db.select<any>('SELECT * FROM user_settings LIMIT 1');
           if (result.length > 0) {
             const settings = result[0];
             set({
@@ -292,7 +292,7 @@ export const useTimerStore = create<TimerState>()(
           
           // Load today's pomodoro count
           const today = new Date().toISOString().split('T')[0];
-          const todayResult = await db.select<any[]>(
+          const todayResult = await db.select<any>(
             'SELECT total_sessions FROM daily_activities WHERE date = $1',
             [today]
           );
@@ -382,13 +382,13 @@ export const useTimerStore = create<TimerState>()(
       checkAchievements: async () => {
         try {
           // Get total minutes across all skills
-          const totalResult = await db.select<any[]>(
+          const totalResult = await db.select<any>(
             'SELECT SUM(current_minutes) as total FROM skills'
           );
           const totalMinutes = totalResult[0]?.total || 0;
 
           // Get current streak
-          const streakResult = await db.select<any[]>(`
+          const streakResult = await db.select<any>(`
             WITH RECURSIVE dates AS (
               SELECT date('now') as date, 0 as days
               UNION ALL
@@ -403,12 +403,12 @@ export const useTimerStore = create<TimerState>()(
           const currentStreak = streakResult[0]?.streak || 0;
 
           // Get skill count
-          const skillResult = await db.select<any[]>('SELECT COUNT(*) as count FROM skills');
+          const skillResult = await db.select<any>('SELECT COUNT(*) as count FROM skills');
           const skillCount = skillResult[0]?.count || 0;
 
           // Get today's pomodoros
           const today = new Date().toISOString().split('T')[0];
-          const todayResult = await db.select<any[]>(
+          const todayResult = await db.select<any>(
             'SELECT total_sessions FROM daily_activities WHERE date = $1',
             [today]
           );
@@ -439,7 +439,7 @@ export const useTimerStore = create<TimerState>()(
 
             // Check if should unlock
             if (ach.progress >= ach.target) {
-              const existing = await db.select<any[]>(
+              const existing = await db.select<any>(
                 'SELECT unlocked_at FROM achievements WHERE type = $1',
                 [ach.type]
               );
@@ -451,7 +451,7 @@ export const useTimerStore = create<TimerState>()(
                 );
                 
                 // Get achievement details for notification
-                const achDetails = await db.select<any[]>(
+                const achDetails = await db.select<any>(
                   'SELECT name, description FROM achievements WHERE type = $1',
                   [ach.type]
                 );
@@ -487,7 +487,7 @@ export const useTimerStore = create<TimerState>()(
 
       getTodayPomodoros: async () => {
         const today = new Date().toISOString().split('T')[0];
-        const result = await db.select<any[]>(
+        const result = await db.select<any>(
           'SELECT total_sessions FROM daily_activities WHERE date = $1',
           [today]
         );

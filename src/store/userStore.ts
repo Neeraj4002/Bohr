@@ -25,16 +25,16 @@ export const useUserStore = create<UserState>((set, get) => ({
   fetchProfile: async () => {
     set({ loading: true, error: null });
     try {
-      const settingsResult = await db.select<any[]>('SELECT * FROM user_settings LIMIT 1');
+      const settingsResult = await db.select<any>('SELECT * FROM user_settings LIMIT 1');
       
       // Calculate stats from skills and daily_activities
-      const skillsResult = await db.select<any[]>(
+      const skillsResult = await db.select<any>(
         'SELECT SUM(current_minutes) as total FROM skills'
       );
       const totalMinutes = skillsResult[0]?.total || 0;
 
       // Calculate current streak
-      const streakResult = await db.select<any[]>(`
+      const streakResult = await db.select<any>(`
         WITH RECURSIVE streak_days AS (
           SELECT date('now') as check_date, 0 as days
           UNION ALL
@@ -53,7 +53,7 @@ export const useUserStore = create<UserState>((set, get) => ({
       `);
       
       // Check if user practiced today
-      const todayResult = await db.select<any[]>(
+      const todayResult = await db.select<any>(
         `SELECT 1 FROM daily_activities WHERE date = date('now') AND total_minutes > 0`
       );
       const practicedToday = todayResult.length > 0;
@@ -64,7 +64,7 @@ export const useUserStore = create<UserState>((set, get) => ({
       }
 
       // Calculate longest streak
-      const longestResult = await db.select<any[]>(`
+      const longestResult = await db.select<any>(`
         WITH dates AS (
           SELECT date, 
                  date(date, '-' || ROW_NUMBER() OVER (ORDER BY date) || ' days') as grp
@@ -256,13 +256,13 @@ export const useUserStore = create<UserState>((set, get) => ({
 
   exportData: async () => {
     try {
-      const skills = await db.select<any[]>('SELECT * FROM skills');
-      const tasks = await db.select<any[]>('SELECT * FROM tasks');
-      const sessions = await db.select<any[]>('SELECT * FROM timer_sessions');
-      const activities = await db.select<any[]>('SELECT * FROM daily_activities');
-      const reflections = await db.select<any[]>('SELECT * FROM reflections');
-      const achievements = await db.select<any[]>('SELECT * FROM achievements WHERE unlocked_at IS NOT NULL');
-      const settings = await db.select<any[]>('SELECT * FROM user_settings LIMIT 1');
+      const skills = await db.select<any>('SELECT * FROM skills');
+      const tasks = await db.select<any>('SELECT * FROM tasks');
+      const sessions = await db.select<any>('SELECT * FROM timer_sessions');
+      const activities = await db.select<any>('SELECT * FROM daily_activities');
+      const reflections = await db.select<any>('SELECT * FROM reflections');
+      const achievements = await db.select<any>('SELECT * FROM achievements WHERE unlocked_at IS NOT NULL');
+      const settings = await db.select<any>('SELECT * FROM user_settings LIMIT 1');
 
       const exportData = {
         version: '1.0',

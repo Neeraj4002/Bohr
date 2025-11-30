@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { X, Play, Pause, Square, Coffee, Target, Music, SkipForward, SkipBack, Volume2, ChevronDown, ChevronUp, Sparkles } from 'lucide-react';
+import { X, Play, Pause, Square, Coffee, Target, ChevronDown, ChevronUp, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useTimerStore } from '@/store/timerStore';
 import { useSkillsStore } from '@/store/skillsStore';
 import { useTasksStore } from '@/store/tasksStore';
 import { cn } from '@/lib/utils';
-import { spotifyAPI, SpotifyPlaylist, PlaybackState } from '@/lib/spotify';
+import MusicPlayer from '@/components/MusicPlayer';
 
 // Motivational messages for different states
 const focusMessages = [
@@ -47,19 +47,11 @@ export default function FocusMode() {
   const [sessionType, setSessionType] = useState<'pomodoro' | 'short-break' | 'long-break'>('pomodoro');
   const [showOptions, setShowOptions] = useState(false);
   const [motivationalMessage, setMotivationalMessage] = useState(getRandomMessage(focusMessages));
-  
-  // Spotify state
-  const [spotifyConnected, setSpotifyConnected] = useState(false);
-  const [showSpotify, setShowSpotify] = useState(false);
-  const [playlists, setPlaylists] = useState<SpotifyPlaylist[]>([]);
-  const [playback, setPlayback] = useState<PlaybackState | null>(null);
-  const [volume, setVolume] = useState(50);
 
   useEffect(() => {
     if (activeSkill) {
       fetchTasks();
     }
-    checkSpotifyAuth();
   }, [activeSkill, fetchTasks]);
 
   // Change motivational message periodically when running
@@ -73,105 +65,6 @@ export default function FocusMode() {
       setMotivationalMessage(getRandomMessage(completionMessages));
     }
   }, [status]);
-
-  useEffect(() => {
-    if (spotifyConnected && showSpotify) {
-      loadPlaylists();
-      const interval = setInterval(updatePlayback, 2000);
-      return () => clearInterval(interval);
-    }
-  }, [spotifyConnected, showSpotify]);
-
-  const checkSpotifyAuth = async () => {
-    const isAuth = await spotifyAPI.isAuthenticated();
-    setSpotifyConnected(isAuth);
-  };
-
-  const handleSpotifyConnect = async () => {
-    try {
-      await spotifyAPI.authorize();
-      // Auth happens in popup, user will need to reconnect after callback
-      setTimeout(checkSpotifyAuth, 2000); // Check again after popup opens
-    } catch (error: any) {
-      console.error('Spotify auth error:', error);
-      if (!error.message.includes('not configured')) {
-        alert('Failed to connect to Spotify. Check the console for details.');
-      }
-    }
-  };
-
-  const handleSpotifyDisconnect = async () => {
-    await spotifyAPI.logout();
-    setSpotifyConnected(false);
-    setShowSpotify(false);
-  };
-
-  const loadPlaylists = async () => {
-    try {
-      const lists = await spotifyAPI.getUserPlaylists();
-      setPlaylists(lists);
-    } catch (error) {
-      console.error('Failed to load playlists:', error);
-    }
-  };
-
-  const updatePlayback = async () => {
-    try {
-      const state = await spotifyAPI.getCurrentPlayback();
-      setPlayback(state);
-    } catch (error) {
-      console.error('Failed to get playback state:', error);
-    }
-  };
-
-  const handlePlayPause = async () => {
-    try {
-      if (playback?.is_playing) {
-        await spotifyAPI.pause();
-      } else {
-        await spotifyAPI.play();
-      }
-      await updatePlayback();
-    } catch (error) {
-      console.error('Play/pause error:', error);
-    }
-  };
-
-  const handleNext = async () => {
-    try {
-      await spotifyAPI.next();
-      setTimeout(updatePlayback, 500);
-    } catch (error) {
-      console.error('Next track error:', error);
-    }
-  };
-
-  const handlePrevious = async () => {
-    try {
-      await spotifyAPI.previous();
-      setTimeout(updatePlayback, 500);
-    } catch (error) {
-      console.error('Previous track error:', error);
-    }
-  };
-
-  const handlePlayPlaylist = async (playlistUri: string) => {
-    try {
-      await spotifyAPI.playPlaylist(playlistUri);
-      setTimeout(updatePlayback, 500);
-    } catch (error) {
-      console.error('Play playlist error:', error);
-    }
-  };
-
-  const handleVolumeChange = async (newVolume: number) => {
-    setVolume(newVolume);
-    try {
-      await spotifyAPI.setVolume(newVolume);
-    } catch (error) {
-      console.error('Volume change error:', error);
-    }
-  };
 
   const handleStart = () => {
     if (!activeSkill) {
@@ -197,15 +90,6 @@ export default function FocusMode() {
   };
   const time = formatTime(remainingSeconds);
 
-  const getSessionConfig = () => {
-    switch (sessionType) {
-      case 'pomodoro': return { label: 'Focus', duration: '25 min', icon: Target, color: 'bg-primary' };
-      case 'short-break': return { label: 'Short Break', duration: '5 min', icon: Coffee, color: 'bg-emerald-500' };
-      case 'long-break': return { label: 'Long Break', duration: '15 min', icon: Coffee, color: 'bg-violet-500' };
-    }
-  };
-  const sessionConfig = getSessionConfig();
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0f0f10] via-[#1a1a1d] to-[#0f0f10] text-white flex flex-col">
       {/* Top Bar - Minimal */}
@@ -225,26 +109,10 @@ export default function FocusMode() {
           </div>
         )}
 
-        {/* Spotify Mini Player */}
-        {spotifyConnected && playback?.track && (
-          <div className="flex items-center gap-3 px-3 py-1.5 rounded-full bg-[#1DB954]/10 border border-[#1DB954]/20">
-            <Music className="w-4 h-4 text-[#1DB954]" />
-            <span className="text-sm text-white/70 max-w-[150px] truncate">{playback.track.name}</span>
-            <button onClick={handlePlayPause} className="p-1 hover:bg-white/10 rounded-full">
-              {playback.is_playing ? <Pause className="w-4 h-4 text-[#1DB954]" /> : <Play className="w-4 h-4 text-[#1DB954]" />}
-            </button>
-          </div>
-        )}
-        
-        {!spotifyConnected && (
-          <button
-            onClick={handleSpotifyConnect}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-white/50 hover:text-white/70 hover:bg-white/10 transition-all text-sm cursor-pointer"
-          >
-            <Music className="w-4 h-4" />
-            <span className="hidden sm:inline">Connect Music</span>
-          </button>
-        )}
+        {/* Music Player (Compact) */}
+        <div className="relative">
+          <MusicPlayer compact />
+        </div>
       </div>
 
       {/* Main Content - Centered */}
@@ -352,7 +220,7 @@ export default function FocusMode() {
                 <>
                   <Button
                     onClick={handleResume}
-                    className="bg-primary hover:bg-primary/90 w-16 h-16 rounded-full"
+                    className="bg-primary hover:bg-primary/90 w-16 h-15 rounded-full"
                   >
                     <Play className="w-7 h-7 ml-1" />
                   </Button>
@@ -475,76 +343,6 @@ export default function FocusMode() {
           </div>
         )}
       </div>
-
-      {/* Bottom Spotify Panel (when expanded) */}
-      {spotifyConnected && showSpotify && (
-        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent backdrop-blur-lg p-6 animate-in slide-in-from-bottom duration-300">
-          <div className="max-w-md mx-auto space-y-4">
-            {/* Now Playing */}
-            {playback?.track && (
-              <div className="text-center">
-                <div className="font-semibold text-white">{playback.track.name}</div>
-                <div className="text-sm text-white/60">{playback.track.artists.join(', ')}</div>
-              </div>
-            )}
-
-            {/* Controls */}
-            <div className="flex items-center justify-center gap-4">
-              <button onClick={handlePrevious} className="p-2 text-white/60 hover:text-white transition-colors">
-                <SkipBack className="w-5 h-5" />
-              </button>
-              <button onClick={handlePlayPause} className="w-12 h-12 rounded-full bg-[#1DB954] flex items-center justify-center hover:scale-105 transition-transform">
-                {playback?.is_playing ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6 ml-0.5" />}
-              </button>
-              <button onClick={handleNext} className="p-2 text-white/60 hover:text-white transition-colors">
-                <SkipForward className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Volume */}
-            <div className="flex items-center gap-3 max-w-[200px] mx-auto">
-              <Volume2 className="w-4 h-4 text-white/40" />
-              <input
-                type="range"
-                min="0"
-                max="100"
-                value={volume}
-                onChange={(e) => handleVolumeChange(parseInt(e.target.value))}
-                className="flex-1 accent-[#1DB954] h-1"
-              />
-            </div>
-
-            {/* Playlists Quick Access */}
-            {playlists.length > 0 && (
-              <div className="flex gap-2 overflow-x-auto pb-2">
-                {playlists.slice(0, 4).map((playlist) => (
-                  <button
-                    key={playlist.id}
-                    onClick={() => handlePlayPlaylist(playlist.uri)}
-                    className="flex-shrink-0 px-3 py-1.5 rounded-full bg-white/10 text-sm text-white/70 hover:bg-white/20 transition-colors"
-                  >
-                    {playlist.name}
-                  </button>
-                ))}
-              </div>
-            )}
-
-            <button onClick={() => setShowSpotify(false)} className="w-full text-center text-xs text-white/40 hover:text-white/60">
-              Hide
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Floating Spotify Toggle (when connected but hidden) */}
-      {spotifyConnected && !showSpotify && (
-        <button
-          onClick={() => setShowSpotify(true)}
-          className="fixed bottom-6 right-6 w-12 h-12 rounded-full bg-[#1DB954]/20 border border-[#1DB954]/30 flex items-center justify-center hover:bg-[#1DB954]/30 transition-all"
-        >
-          <Music className="w-5 h-5 text-[#1DB954]" />
-        </button>
-      )}
     </div>
   );
 }

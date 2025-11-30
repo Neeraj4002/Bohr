@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useSkillsStore } from '@/store/skillsStore';
 import Database from '@tauri-apps/plugin-sql';

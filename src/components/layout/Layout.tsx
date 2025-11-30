@@ -4,11 +4,11 @@ import Header from './Header';
 
 export default function Layout() {
   return (
-    <div className="flex h-screen bg-[#F8F9FA] dark:bg-[#202124] overflow-hidden">
+    <div className="flex h-screen w-screen bg-[#F8F9FA] dark:bg-[#202124] overflow-hidden">
       <Sidebar />
-      <div className="flex flex-col flex-1 min-w-0">
+      <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
         <Header />
-        <main className="flex-1 overflow-hidden bg-[#F8F9FA] dark:bg-[#202124]">
+        <main className="flex-1 overflow-auto bg-[#F8F9FA] dark:bg-[#202124]">
           <Outlet />
         </main>
       </div>

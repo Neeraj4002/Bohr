@@ -77,7 +77,24 @@ export class SpotifyAPI {
       return this.tokens;
     }
 
-    // Load from database
+    // First try localStorage (works in both Tauri and browser)
+    const storedTokens = localStorage.getItem('spotify_tokens');
+    if (storedTokens) {
+      try {
+        const parsed = JSON.parse(storedTokens) as SpotifyTokens;
+        if (parsed.expires_at > Date.now()) {
+          this.tokens = parsed;
+          return this.tokens;
+        } else if (parsed.refresh_token) {
+          // Token expired, try to refresh
+          return await this.refreshAccessToken(parsed.refresh_token);
+        }
+      } catch (e) {
+        console.error('Failed to parse stored tokens:', e);
+      }
+    }
+
+    // Fallback: try database (only works in Tauri)
     try {
       const database = await getDb();
       const result = await database.select<any[]>(
@@ -85,10 +102,7 @@ export class SpotifyAPI {
       );
 
       if (result.length > 0 && result[0].spotify_access_token) {
-        // Check if token is expired (assume 1 hour expiry)
-        const needsRefresh = true; // Simplified - should check actual expiry
-
-        if (needsRefresh && result[0].spotify_refresh_token) {
+        if (result[0].spotify_refresh_token) {
           return await this.refreshAccessToken(result[0].spotify_refresh_token);
         }
 
@@ -97,10 +111,13 @@ export class SpotifyAPI {
           refresh_token: result[0].spotify_refresh_token,
           expires_at: Date.now() + 3600 * 1000,
         };
+        // Also store in localStorage for consistency
+        localStorage.setItem('spotify_tokens', JSON.stringify(this.tokens));
         return this.tokens;
       }
     } catch (error) {
-      console.error('Failed to load Spotify tokens:', error);
+      // Database not available (browser context)
+      console.log('Database not available for token lookup');
     }
 
     return null;
@@ -122,8 +139,8 @@ export class SpotifyAPI {
     const hashed = await sha256(codeVerifier);
     const codeChallenge = base64urlencode(hashed);
 
-    // Store code verifier for later use
-    sessionStorage.setItem('spotify_code_verifier', codeVerifier);
+    // Store code verifier in localStorage (for Tauri app polling) AND pass in state (for browser callback)
+    localStorage.setItem('spotify_code_verifier', codeVerifier);
 
     const authUrl = new URL('https://accounts.spotify.com/authorize');
     authUrl.searchParams.append('client_id', CLIENT_ID);
@@ -132,18 +149,19 @@ export class SpotifyAPI {
     authUrl.searchParams.append('code_challenge_method', 'S256');
     authUrl.searchParams.append('code_challenge', codeChallenge);
     authUrl.searchParams.append('scope', SCOPES);
+    // Pass code verifier in state param so browser callback can use it
+    authUrl.searchParams.append('state', codeVerifier);
 
     console.log('Opening Spotify auth URL:', authUrl.toString());
-    const popup = window.open(authUrl.toString(), 'Spotify Login', 'width=600,height=800');
     
-    if (!popup) {
-      alert('Popup was blocked! Please allow popups for this site and try again.');
-      throw new Error('Popup blocked');
-    }
+    // Navigate within the same window so callback stays in Tauri webview
+    // This ensures localStorage is shared between auth and callback
+    window.location.href = authUrl.toString();
   }
 
-  async handleCallback(code: string): Promise<void> {
-    const codeVerifier = sessionStorage.getItem('spotify_code_verifier');
+  async handleCallback(code: string, stateCodeVerifier?: string): Promise<void> {
+    // Try to get code verifier from: 1) passed state param, 2) localStorage
+    const codeVerifier = stateCodeVerifier || localStorage.getItem('spotify_code_verifier');
     if (!codeVerifier) {
       throw new Error('Code verifier not found');
     }
@@ -163,6 +181,8 @@ export class SpotifyAPI {
     });
 
     if (!response.ok) {
+      const errorData = await response.text();
+      console.error('Token exchange failed:', errorData);
       throw new Error('Failed to exchange code for token');
     }
 
@@ -173,7 +193,10 @@ export class SpotifyAPI {
       expires_at: Date.now() + data.expires_in * 1000,
     };
 
-    // Store in database
+    // Store tokens in localStorage (works in both Tauri and browser)
+    localStorage.setItem('spotify_tokens', JSON.stringify(this.tokens));
+
+    // Also try to store in database if Tauri is available
     try {
       const database = await getDb();
       await database.execute(
@@ -181,10 +204,11 @@ export class SpotifyAPI {
         [data.access_token, data.refresh_token]
       );
     } catch (error) {
-      console.error('Failed to store Spotify tokens:', error);
+      // This will fail in browser context, that's OK - we have localStorage
+      console.log('Database not available, tokens stored in localStorage only');
     }
 
-    sessionStorage.removeItem('spotify_code_verifier');
+    localStorage.removeItem('spotify_code_verifier');
   }
 
   async refreshAccessToken(refreshToken: string): Promise<SpotifyTokens> {
@@ -211,7 +235,10 @@ export class SpotifyAPI {
       expires_at: Date.now() + data.expires_in * 1000,
     };
 
-    // Update in database
+    // Store in localStorage
+    localStorage.setItem('spotify_tokens', JSON.stringify(this.tokens));
+
+    // Also try to update in database
     try {
       const database = await getDb();
       await database.execute(
@@ -219,7 +246,7 @@ export class SpotifyAPI {
         [data.access_token]
       );
     } catch (error) {
-      console.error('Failed to update Spotify token:', error);
+      console.log('Database not available for token update');
     }
 
     return this.tokens;
@@ -227,13 +254,14 @@ export class SpotifyAPI {
 
   async logout(): Promise<void> {
     this.tokens = null;
+    localStorage.removeItem('spotify_tokens');
     try {
       const database = await getDb();
       await database.execute(
         'UPDATE user_settings SET spotify_access_token = NULL, spotify_refresh_token = NULL'
       );
     } catch (error) {
-      console.error('Failed to clear Spotify tokens:', error);
+      console.log('Database not available for logout');
     }
   }
 
@@ -318,6 +346,23 @@ export class SpotifyAPI {
     await this.makeRequest(`/me/player/volume?volume_percent=${volume}`, { method: 'PUT' });
   }
 
+  async getDevices(): Promise<{ id: string; name: string; type: string; is_active: boolean }[]> {
+    const data = await this.makeRequest('/me/player/devices');
+    return data.devices.map((d: any) => ({
+      id: d.id,
+      name: d.name,
+      type: d.type,
+      is_active: d.is_active,
+    }));
+  }
+
+  async transferPlayback(deviceId: string): Promise<void> {
+    await this.makeRequest('/me/player', {
+      method: 'PUT',
+      body: JSON.stringify({ device_ids: [deviceId], play: true }),
+    });
+  }
+
   async getUserPlaylists(): Promise<SpotifyPlaylist[]> {
     const data = await this.makeRequest('/me/playlists?limit=50');
     return data.items.map((item: any) => ({
@@ -328,8 +373,11 @@ export class SpotifyAPI {
     }));
   }
 
-  async playPlaylist(playlistUri: string): Promise<void> {
-    await this.makeRequest('/me/player/play', {
+  async playPlaylist(playlistUri: string, deviceId?: string): Promise<void> {
+    const endpoint = deviceId 
+      ? `/me/player/play?device_id=${deviceId}`
+      : '/me/player/play';
+    await this.makeRequest(endpoint, {
       method: 'PUT',
       body: JSON.stringify({ context_uri: playlistUri }),
     });

@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Modal, ConfirmDialog } from '@/components/ui/modal';
 import { SkeletonCard } from '@/components/ui/skeleton';
-import { NumberTicker, AnimatedProgress, FadeIn, StaggerContainer, StaggerItem, HoverCard } from '@/components/ui/magic';
+import { NumberTicker, AnimatedProgress, StaggerContainer, StaggerItem } from '@/components/ui/magic';
 import { useSkillsStore } from '@/store/skillsStore';
 import { Skill } from '@/types';
 import { toast } from 'sonner';

@@ -5,7 +5,6 @@ import { useTasksStore } from '@/store/tasksStore';
 import { useTimerStore } from '@/store/timerStore';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card } from '@/components/ui/card';
 import { Modal, ConfirmDialog } from '@/components/ui/modal';
 import { SkeletonKanban } from '@/components/ui/skeleton';
 import { Plus, Play, Trash2, Clock, Calendar, Flag, Pencil, Target } from 'lucide-react';
@@ -22,7 +21,6 @@ import {
   useSensors,
   DragStartEvent,
   DragEndEvent,
-  DragOverEvent,
   useDroppable,
 } from '@dnd-kit/core';
 import {
@@ -39,13 +37,6 @@ const PRIORITY_COLORS: Record<TaskPriority, string> = {
   medium: 'text-gblue',
   high: 'text-gyellow-600',
   urgent: 'text-gred',
-};
-
-const PRIORITY_BG: Record<TaskPriority, string> = {
-  low: 'bg-gray-100 dark:bg-gray-800',
-  medium: 'bg-gblue/10 dark:bg-gblue/20',
-  high: 'bg-gyellow/10 dark:bg-gyellow/20',
-  urgent: 'bg-gred/10 dark:bg-gred/20',
 };
 
 interface TaskCardProps {

@@ -1,9 +1,8 @@
 import { useEffect, useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useSkillsStore } from '@/store/skillsStore';
 import { useUserStore } from '@/store/userStore';
 import Database from '@tauri-apps/plugin-sql';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Award, TrendingUp, Target, Calendar as CalendarIcon, Flame } from 'lucide-react';
 
 let db: Database | null = null;

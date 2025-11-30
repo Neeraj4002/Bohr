@@ -1,1 +1,1 @@
-{"main":{"identifier":"main","description":"Main application capabilities","local":true,"windows":["main"],"permissions":["sql:default","sql:allow-execute","sql:allow-select","sql:allow-load","sql:allow-close"]}}
+{"main":{"identifier":"main","description":"Main application capabilities","local":true,"windows":["main"],"permissions":["sql:default","sql:allow-execute","sql:allow-select","sql:allow-load","sql:allow-close","shell:allow-open"]}}
