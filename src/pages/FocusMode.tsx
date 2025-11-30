@@ -1,14 +1,31 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { X, Play, Pause, Square, Coffee, Target, Music, SkipForward, SkipBack, Volume2 } from 'lucide-react';
+import { X, Play, Pause, Square, Coffee, Target, Music, SkipForward, SkipBack, Volume2, ChevronDown, ChevronUp, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useTimerStore } from '@/store/timerStore';
 import { useSkillsStore } from '@/store/skillsStore';
 import { useTasksStore } from '@/store/tasksStore';
 import { cn } from '@/lib/utils';
 import { spotifyAPI, SpotifyPlaylist, PlaybackState } from '@/lib/spotify';
-import FlipClockCountdown from '@leenguyen/react-flip-clock-countdown';
-import '@leenguyen/react-flip-clock-countdown/dist/index.css';
+
+// Motivational messages for different states
+const focusMessages = [
+  "Deep work mode activated 🎯",
+  "You're in the zone 🔥",
+  "Making progress... 💪",
+  "Stay with it 🧘",
+  "Building mastery 🚀",
+];
+
+const completionMessages = [
+  "Excellent work! 🎉",
+  "Session complete! 🏆", 
+  "You crushed it! 💪",
+  "One step closer to mastery! ⭐",
+  "Great focus session! 🔥",
+];
+
+const getRandomMessage = (messages: string[]) => messages[Math.floor(Math.random() * messages.length)];
 
 export default function FocusMode() {
   const navigate = useNavigate();
@@ -28,6 +45,8 @@ export default function FocusMode() {
 
   const [selectedTaskId, setSelectedTaskId] = useState<string>('');
   const [sessionType, setSessionType] = useState<'pomodoro' | 'short-break' | 'long-break'>('pomodoro');
+  const [showOptions, setShowOptions] = useState(false);
+  const [motivationalMessage, setMotivationalMessage] = useState(getRandomMessage(focusMessages));
   
   // Spotify state
   const [spotifyConnected, setSpotifyConnected] = useState(false);
@@ -38,10 +57,22 @@ export default function FocusMode() {
 
   useEffect(() => {
     if (activeSkill) {
-      fetchTasks(); // Always fetch tasks when entering focus mode
+      fetchTasks();
     }
     checkSpotifyAuth();
   }, [activeSkill, fetchTasks]);
+
+  // Change motivational message periodically when running
+  useEffect(() => {
+    if (status === 'running') {
+      const interval = setInterval(() => {
+        setMotivationalMessage(getRandomMessage(focusMessages));
+      }, 30000); // Change every 30 seconds
+      return () => clearInterval(interval);
+    } else if (status === 'completed') {
+      setMotivationalMessage(getRandomMessage(completionMessages));
+    }
+  }, [status]);
 
   useEffect(() => {
     if (spotifyConnected && showSpotify) {
@@ -156,421 +187,364 @@ export default function FocusMode() {
 
   const progress = totalSeconds > 0 ? ((totalSeconds - remainingSeconds) / totalSeconds) * 100 : 0;
   const currentTask = currentTaskId ? tasks.find(t => t.id === currentTaskId) : null;
+  const selectedTask = selectedTaskId ? tasks.find(t => t.id === selectedTaskId) : null;
 
-  const getSessionTypeLabel = () => {
-    switch (type) {
-      case 'pomodoro':
-        return 'Focus Session';
-      case 'short-break':
-        return 'Short Break';
-      case 'long-break':
-        return 'Long Break';
-      default:
-        return 'Focus Session';
+  // Format time display
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return { mins, secs };
+  };
+  const time = formatTime(remainingSeconds);
+
+  const getSessionConfig = () => {
+    switch (sessionType) {
+      case 'pomodoro': return { label: 'Focus', duration: '25 min', icon: Target, color: 'bg-primary' };
+      case 'short-break': return { label: 'Short Break', duration: '5 min', icon: Coffee, color: 'bg-emerald-500' };
+      case 'long-break': return { label: 'Long Break', duration: '15 min', icon: Coffee, color: 'bg-violet-500' };
     }
   };
+  const sessionConfig = getSessionConfig();
 
   return (
-    <div className="h-screen bg-[#202124] text-white flex flex-col items-center justify-center p-8 relative">
-      {/* Exit Button */}
-      <Button
-        variant="ghost"
-        size="icon"
-        className="absolute top-4 right-4 text-white/60 hover:text-white hover:bg-white/10"
-        onClick={() => navigate(-1)}
-      >
-        <X className="w-6 h-6" />
-      </Button>
-
-      {/* Active Skill Display */}
-      {activeSkill && (
-        <div className="absolute top-4 left-4 text-left">
-          <div className="text-xs text-white/40 uppercase tracking-wider">Active Skill</div>
-          <div className="text-xl font-medium text-[#8AB4F8]">{activeSkill.name}</div>
-          <div className="text-sm text-white/50">
-            {Math.floor(activeSkill.currentMinutes / 60)} hours completed
-          </div>
-        </div>
-      )}
-
-      <div className="w-full max-w-4xl space-y-8">
-        {/* Session Type Selector (only when idle) */}
-        {status === 'idle' && (
-          <div className="flex justify-center gap-4">
-            <Button
-              variant={sessionType === 'pomodoro' ? 'default' : 'outline'}
-              onClick={() => setSessionType('pomodoro')}
-              className={cn(
-                'gap-2 rounded-full px-6',
-                sessionType === 'pomodoro' ? 'bg-primary text-primary-foreground' : 'bg-white/5 text-white/70 border-white/10 hover:bg-white/10 hover:text-white'
-              )}
-            >
-              <Target className="w-4 h-4" />
-              Focus (25m)
-            </Button>
-            <Button
-              variant={sessionType === 'short-break' ? 'default' : 'outline'}
-              onClick={() => setSessionType('short-break')}
-              className={cn(
-                'gap-2 rounded-full px-6',
-                sessionType === 'short-break' ? 'bg-primary text-primary-foreground' : 'bg-white/5 text-white/70 border-white/10 hover:bg-white/10 hover:text-white'
-              )}
-            >
-              <Coffee className="w-4 h-4" />
-              Short Break (5m)
-            </Button>
-            <Button
-              variant={sessionType === 'long-break' ? 'default' : 'outline'}
-              onClick={() => setSessionType('long-break')}
-              className={cn(
-                'gap-2 rounded-full px-6',
-                sessionType === 'long-break' ? 'bg-primary text-primary-foreground' : 'bg-white/5 text-white/70 border-white/10 hover:bg-white/10 hover:text-white'
-              )}
-            >
-              <Coffee className="w-4 h-4" />
-              Long Break (15m)
-            </Button>
+    <div className="min-h-screen bg-gradient-to-br from-[#0f0f10] via-[#1a1a1d] to-[#0f0f10] text-white flex flex-col">
+      {/* Top Bar - Minimal */}
+      <div className="flex items-center justify-between p-4 relative z-10">
+        <button
+          onClick={() => navigate(-1)}
+          className="p-2 rounded-full text-white/40 hover:text-white hover:bg-white/5 transition-all cursor-pointer"
+        >
+          <X className="w-5 h-5" />
+        </button>
+        
+        {/* Skill Badge */}
+        {activeSkill && (
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10">
+            <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+            <span className="text-sm text-white/70">{activeSkill.name}</span>
           </div>
         )}
 
-        {/* Task Selector - Compact horizontal pill style */}
-        {status === 'idle' && sessionType === 'pomodoro' && tasks.length > 0 && (
-          <div className="text-center">
-            <label className="text-sm text-white/50 uppercase tracking-wider mb-3 block">
-              Working on
-            </label>
-            <div className="flex flex-wrap justify-center gap-2 max-w-2xl mx-auto">
-              <button
-                onClick={() => setSelectedTaskId('')}
-                className={cn(
-                  "px-4 py-2 rounded-full text-sm transition-all",
-                  selectedTaskId === ''
-                    ? "bg-primary text-white"
-                    : "bg-white/[0.08] text-white/70 hover:bg-white/[0.12]"
-                )}
-              >
-                Free Practice
-              </button>
-              {tasks
-                .filter(t => t.status !== 'done')
-                .slice(0, 5) // Limit to 5 tasks
-                .map((task) => (
-                  <button
-                    key={task.id}
-                    onClick={() => setSelectedTaskId(task.id)}
-                    className={cn(
-                      "px-4 py-2 rounded-full text-sm transition-all truncate max-w-[200px]",
-                      selectedTaskId === task.id
-                        ? "bg-primary text-white"
-                        : "bg-white/[0.08] text-white/70 hover:bg-white/[0.12]"
-                    )}
-                  >
-                    {task.title}
-                  </button>
-                ))}
-            </div>
+        {/* Spotify Mini Player */}
+        {spotifyConnected && playback?.track && (
+          <div className="flex items-center gap-3 px-3 py-1.5 rounded-full bg-[#1DB954]/10 border border-[#1DB954]/20">
+            <Music className="w-4 h-4 text-[#1DB954]" />
+            <span className="text-sm text-white/70 max-w-[150px] truncate">{playback.track.name}</span>
+            <button onClick={handlePlayPause} className="p-1 hover:bg-white/10 rounded-full">
+              {playback.is_playing ? <Pause className="w-4 h-4 text-[#1DB954]" /> : <Play className="w-4 h-4 text-[#1DB954]" />}
+            </button>
           </div>
         )}
-        {/* Current Task Display - During Timer */}
-        {(status === 'running' || status === 'paused') && currentTask && (
-          <div className="text-center">
-            <div className="text-sm text-white/50 uppercase tracking-wider mb-1">Working on</div>
-            <div className="text-xl text-white font-semibold">{currentTask.title}</div>
-          </div>
-        )}
-
-        {/* Timer Display */}
-        <div className="text-center space-y-6">
-          <div className="text-xl text-white/50 uppercase tracking-widest font-medium">
-            {getSessionTypeLabel()}
-          </div>
-          
-          {/* Flip Clock Countdown - Only show when running */}
-          {status === 'running' && (
-            <div className="flex justify-center">
-              <FlipClockCountdown
-                to={new Date().getTime() + remainingSeconds * 1000}
-                labels={['DAYS', 'HOURS', 'MINUTES', 'SECONDS']}
-                showLabels={true}
-                showSeparators={true}
-                labelStyle={{
-                  fontSize: 12,
-                  fontWeight: 500,
-                  textTransform: 'uppercase',
-                  color: 'rgba(255, 255, 255, 0.4)',
-                  letterSpacing: '0.15em',
-                }}
-                digitBlockStyle={{
-                  width: 80,
-                  height: 120,
-                  fontSize: 64,
-                  backgroundColor: '#1A73E8',
-                  color: '#FFFFFF',
-                }}
-                dividerStyle={{ color: '#1A73E8', height: 1 }}
-                separatorStyle={{ color: '#8AB4F8', size: '10px' }}
-                duration={0.5}
-                renderMap={[false, remainingSeconds >= 3600, true, true]}
-              />
-            </div>
-          )}
-          
-          {/* Static display when not running */}
-          {status !== 'running' && (
-            <div className="flex items-center justify-center gap-4">
-              {remainingSeconds >= 3600 && (
-                <>
-                  <div className="flex flex-col items-center">
-                    <div className="bg-[#1A73E8] text-white rounded-xl px-8 py-6 min-w-[120px] text-center timer-glow">
-                      <div className="text-8xl font-bold font-display tabular-nums">
-                        {String(Math.floor(remainingSeconds / 3600)).padStart(2, '0')}
-                      </div>
-                    </div>
-                    <div className="text-xs text-white/40 mt-4 uppercase font-medium tracking-widest">Hours</div>
-                  </div>
-                  
-                  <div className="text-7xl font-bold text-[#8AB4F8] pb-10">:</div>
-                </>
-              )}
-              
-              <div className="flex flex-col items-center">
-                <div className="bg-[#1A73E8] text-white rounded-xl px-8 py-6 min-w-[120px] text-center timer-glow">
-                  <div className="text-8xl font-bold font-display tabular-nums">
-                    {String(Math.floor((remainingSeconds % 3600) / 60)).padStart(2, '0')}
-                  </div>
-                </div>
-                <div className="text-xs text-white/40 mt-4 uppercase font-medium tracking-widest">Minutes</div>
-              </div>
-              
-              <div className="text-7xl font-bold text-[#8AB4F8] pb-10">:</div>
-              
-              <div className="flex flex-col items-center">
-                <div className="bg-[#1A73E8] text-white rounded-xl px-8 py-6 min-w-[120px] text-center timer-glow">
-                  <div className="text-8xl font-bold font-display tabular-nums">
-                    {String(remainingSeconds % 60).padStart(2, '0')}
-                  </div>
-                </div>
-                <div className="text-xs text-white/40 mt-4 uppercase font-medium tracking-widest">Seconds</div>
-              </div>
-            </div>
-          )}
-
-          {/* Progress Bar */}
-          <div className="max-w-md mx-auto">
-            <div className="w-full bg-white/[0.08] rounded-full h-2">
-              <div
-                className="h-2 rounded-full bg-[#1A73E8] transition-all duration-1000"
-                style={{ width: `${progress}%` }}
-              />
-            </div>
-          </div>
-
-          {/* Status Text */}
-          <div className="text-lg text-white/60 font-medium">
-            {status === 'idle' && 'Ready to begin'}
-            {status === 'running' && 'Stay focused...'}
-            {status === 'paused' && 'Paused'}
-            {status === 'completed' && 'Great work! 🎉'}
-          </div>
-        </div>
-
-        {/* Controls - Circular FAB style for Start */}
-        <div className="flex items-center justify-center gap-6">
-          {status === 'idle' && (
-            <Button
-              onClick={handleStart}
-              size="lg"
-              className="bg-[#1A73E8] text-white hover:bg-[#1557B0] w-20 h-20 rounded-full text-xl elevation-3 hover:elevation-4"
-              disabled={!activeSkill}
-            >
-              <Play className="w-8 h-8" />
-            </Button>
-          )}
-
-          {status === 'running' && (
-            <>
-              <Button
-                onClick={handlePause}
-                size="lg"
-                variant="outline"
-                className="bg-white/[0.05] text-white border-white/10 hover:bg-white/10 px-8 py-6 text-lg gap-3 rounded-full"
-              >
-                <Pause className="w-5 h-5" />
-                Pause
-              </Button>
-              <Button
-                onClick={handleStop}
-                size="lg"
-                variant="outline"
-                className="bg-white/[0.05] text-white border-white/10 hover:bg-[#EA4335]/20 hover:border-[#EA4335]/30 px-8 py-6 text-lg gap-3 rounded-full"
-              >
-                <Square className="w-5 h-5" />
-                Stop
-              </Button>
-            </>
-          )}
-
-          {status === 'paused' && (
-            <>
-              <Button
-                onClick={handleResume}
-                size="lg"
-                className="bg-[#1A73E8] text-white hover:bg-[#1557B0] w-20 h-20 rounded-full text-xl elevation-3 hover:elevation-4"
-              >
-                <Play className="w-8 h-8" />
-              </Button>
-              <Button
-                onClick={handleStop}
-                size="lg"
-                variant="outline"
-                className="bg-white/[0.05] text-white border-white/10 hover:bg-[#EA4335]/20 hover:border-[#EA4335]/30 px-8 py-6 text-lg gap-3 rounded-full"
-              >
-                <Square className="w-5 h-5" />
-                Stop
-              </Button>
-            </>
-          )}
-
-          {status === 'completed' && (
-            <Button
-              onClick={handleStart}
-              size="lg"
-              className="bg-[#1A73E8] text-white hover:bg-[#1557B0] px-12 py-6 text-xl gap-3 rounded-full elevation-3 hover:elevation-4"
-            >
-              <Play className="w-6 h-6" />
-              Start Another
-            </Button>
-          )}
-        </div>
-
-        {!activeSkill && status === 'idle' && (
-          <div className="text-center text-white/60 text-sm">
-            Please select an active skill from the Skills page first
-          </div>
+        
+        {!spotifyConnected && (
+          <button
+            onClick={handleSpotifyConnect}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-white/50 hover:text-white/70 hover:bg-white/10 transition-all text-sm cursor-pointer"
+          >
+            <Music className="w-4 h-4" />
+            <span className="hidden sm:inline">Connect Music</span>
+          </button>
         )}
       </div>
 
-      {/* Spotify Controls */}
-      <div className="absolute bottom-6 right-6 left-6">
-        {!spotifyConnected ? (
-          <div className="flex justify-center">
-            <Button
-              variant="outline"
-              onClick={handleSpotifyConnect}
-              className="bg-[#1DB954]/10 text-[#1DB954] border-[#1DB954]/30 hover:bg-[#1DB954]/20 hover:border-[#1DB954]/50 gap-2 px-6 py-3"
-            >
-              <Music className="w-5 h-5" />
-              Connect Spotify for Focus Music
-            </Button>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {/* Toggle Spotify Panel */}
-            <div className="flex justify-center">
+      {/* Main Content - Centered */}
+      <div className="flex-1 flex flex-col items-center justify-center px-4">
+        
+        {/* Completion State */}
+        {status === 'completed' && (
+          <div className="text-center space-y-8 animate-in fade-in duration-500">
+            <div className="relative">
+              <Sparkles className="w-20 h-20 text-yellow-400 mx-auto animate-pulse" />
+              <div className="absolute inset-0 w-20 h-20 mx-auto bg-yellow-400/20 rounded-full blur-2xl" />
+            </div>
+            <div className="space-y-2">
+              <h1 className="text-4xl font-bold">{motivationalMessage}</h1>
+              <p className="text-white/50">You completed a {type === 'pomodoro' ? 'focus' : 'break'} session</p>
+            </div>
+            <div className="flex gap-4 justify-center">
+              <Button
+                onClick={handleStart}
+                className="bg-primary hover:bg-primary/90 px-8 py-6 text-lg gap-2 rounded-full"
+              >
+                <Play className="w-5 h-5" />
+                Start Another
+              </Button>
               <Button
                 variant="outline"
-                size="sm"
-                onClick={() => setShowSpotify(!showSpotify)}
-                className="bg-[#1DB954]/10 text-[#1DB954] border-[#1DB954]/30 hover:bg-[#1DB954]/20 gap-2"
+                onClick={() => navigate('/dashboard')}
+                className="bg-white/5 border-white/10 hover:bg-white/10 px-8 py-6 text-lg rounded-full"
               >
-                <Music className="w-4 h-4" />
-                {showSpotify ? 'Hide Music' : 'Show Music'}
+                Done for now
               </Button>
             </div>
+          </div>
+        )}
 
-            {/* Spotify Panel */}
-            {showSpotify && (
-              <div className="bg-white/[0.05] backdrop-blur-lg rounded-xl p-4 max-w-md mx-auto border border-white/10">
-                {/* Now Playing */}
-                {playback?.track && (
-                  <div className="mb-4 text-center">
-                    <div className="text-xs text-white/60 mb-1">Now Playing</div>
-                    <div className="font-semibold text-white">{playback.track.name}</div>
-                    <div className="text-sm text-white/80">
-                      {playback.track.artists.join(', ')}
-                    </div>
-                  </div>
-                )}
+        {/* Active Timer State (Running or Paused) */}
+        {(status === 'running' || status === 'paused') && (
+          <div className="text-center space-y-8">
+            {/* Current Task */}
+            {currentTask && (
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10">
+                <Target className="w-4 h-4 text-primary" />
+                <span className="text-white/80">{currentTask.title}</span>
+              </div>
+            )}
 
-                {/* Playback Controls */}
-                <div className="flex items-center justify-center gap-3 mb-4">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handlePrevious}
-                    className="text-white/80 hover:text-white hover:bg-white/10"
-                  >
-                    <SkipBack className="w-5 h-5" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handlePlayPause}
-                    className="text-[#1DB954] hover:bg-[#1DB954]/20 w-12 h-12 rounded-full"
-                  >
-                    {playback?.is_playing ? (
-                      <Pause className="w-6 h-6" />
-                    ) : (
-                      <Play className="w-6 h-6" />
-                    )}
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleNext}
-                    className="text-white/80 hover:text-white hover:bg-white/10"
-                  >
-                    <SkipForward className="w-5 h-5" />
-                  </Button>
+            {/* Timer Display - Clean & Large */}
+            <div className="relative">
+              {/* Glow Effect */}
+              <div className="absolute inset-0 bg-primary/20 blur-[100px] rounded-full" />
+              
+              <div className="relative flex items-baseline justify-center gap-2">
+                <div className="text-[140px] sm:text-[180px] font-bold tabular-nums leading-none tracking-tight">
+                  {String(time.mins).padStart(2, '0')}
                 </div>
-
-                {/* Volume Control */}
-                <div className="flex items-center gap-2 mb-4">
-                  <Volume2 className="w-4 h-4 text-white/60" />
-                  <input
-                    type="range"
-                    min="0"
-                    max="100"
-                    value={volume}
-                    onChange={(e) => handleVolumeChange(parseInt(e.target.value))}
-                    className="flex-1 accent-[#1DB954]"
-                  />
-                  <span className="text-xs text-white/60 w-8">{volume}%</span>
+                <div className={cn(
+                  "text-[140px] sm:text-[180px] font-bold leading-none",
+                  status === 'running' && "animate-pulse"
+                )}>
+                  :
                 </div>
+                <div className="text-[140px] sm:text-[180px] font-bold tabular-nums leading-none tracking-tight">
+                  {String(time.secs).padStart(2, '0')}
+                </div>
+              </div>
+            </div>
 
-                {/* Playlists */}
-                {playlists.length > 0 && (
-                  <div>
-                    <div className="text-xs text-white/60 mb-2">Quick Playlists</div>
-                    <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto">
-                      {playlists.slice(0, 6).map((playlist) => (
-                        <button
-                          key={playlist.id}
-                          onClick={() => handlePlayPlaylist(playlist.uri)}
-                          className="text-left p-2 rounded bg-white/5 hover:bg-white/10 transition-colors text-xs"
-                        >
-                          <div className="font-medium text-white truncate">{playlist.name}</div>
-                          <div className="text-white/60">{playlist.tracks_count} tracks</div>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
+            {/* Progress Ring - Subtle */}
+            <div className="w-full max-w-xs mx-auto">
+              <div className="h-1 bg-white/10 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-gradient-to-r from-primary to-blue-400 transition-all duration-1000 ease-linear"
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+            </div>
 
-                {/* Disconnect */}
-                <div className="mt-3 text-center">
+            {/* Motivational Message */}
+            <p className="text-lg text-white/50 font-medium transition-all duration-500">
+              {status === 'paused' ? '⏸️ Paused - Take your time' : motivationalMessage}
+            </p>
+
+            {/* Controls */}
+            <div className="flex items-center justify-center gap-4">
+              {status === 'running' ? (
+                <>
+                  <Button
+                    onClick={handlePause}
+                    variant="outline"
+                    className="bg-white/5 border-white/10 hover:bg-white/10 px-6 py-5 gap-2 rounded-full"
+                  >
+                    <Pause className="w-5 h-5" />
+                    Pause
+                  </Button>
+                  <Button
+                    onClick={handleStop}
+                    variant="outline"
+                    className="bg-white/5 border-white/10 hover:bg-red-500/20 hover:border-red-500/30 hover:text-red-400 px-6 py-5 gap-2 rounded-full"
+                  >
+                    <Square className="w-5 h-5" />
+                    End
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button
+                    onClick={handleResume}
+                    className="bg-primary hover:bg-primary/90 w-16 h-16 rounded-full"
+                  >
+                    <Play className="w-7 h-7 ml-1" />
+                  </Button>
+                  <Button
+                    onClick={handleStop}
+                    variant="outline"
+                    className="bg-white/5 border-white/10 hover:bg-red-500/20 hover:border-red-500/30 hover:text-red-400 px-6 py-5 gap-2 rounded-full"
+                  >
+                    <Square className="w-5 h-5" />
+                    End Session
+                  </Button>
+                </>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Idle State - Ready to Start */}
+        {status === 'idle' && (
+          <div className="text-center space-y-10 w-full max-w-lg">
+            
+            {/* Session Type Pills */}
+            <div className="flex justify-center gap-2">
+              {(['pomodoro', 'short-break', 'long-break'] as const).map((sType) => {
+                const config = {
+                  pomodoro: { label: 'Focus', duration: '25m', icon: Target },
+                  'short-break': { label: 'Short', duration: '5m', icon: Coffee },
+                  'long-break': { label: 'Long', duration: '15m', icon: Coffee },
+                };
+                const c = config[sType];
+                const Icon = c.icon;
+                const isActive = sessionType === sType;
+                return (
                   <button
-                    onClick={handleSpotifyDisconnect}
-                    className="text-xs text-white/60 hover:text-white/80"
+                    key={sType}
+                    onClick={() => setSessionType(sType)}
+                    className={cn(
+                      "flex items-center gap-2 px-4 py-2 rounded-full text-sm transition-all",
+                      isActive 
+                        ? "bg-primary text-white" 
+                        : "bg-white/5 text-white/60 hover:bg-white/10 hover:text-white/80"
+                    )}
                   >
-                    Disconnect Spotify
+                    <Icon className="w-4 h-4" />
+                    {c.label}
+                    <span className={cn("text-xs", isActive ? "text-white/70" : "text-white/40")}>{c.duration}</span>
                   </button>
-                </div>
+                );
+              })}
+            </div>
+
+            {/* Main Timer Preview */}
+            <div className="relative py-8">
+              <div className="absolute inset-0 bg-primary/10 blur-[80px] rounded-full" />
+              <div className="relative text-[120px] sm:text-[160px] font-bold tabular-nums leading-none tracking-tight text-white/90">
+                {sessionType === 'pomodoro' ? '25:00' : sessionType === 'short-break' ? '05:00' : '15:00'}
+              </div>
+            </div>
+
+            {/* START Button - The Hero */}
+            <div className="space-y-6">
+              <button
+                onClick={handleStart}
+                disabled={!activeSkill}
+                className={cn(
+                  "group relative w-20 h-12 rounded-full mx-auto flex items-center justify-center transition-all duration-300",
+                  activeSkill 
+                    ? "bg-primary hover:bg-primary/90 hover:scale-10 hover:shadow-[0_0_60px_rgba(26,115,232,0.5)]" 
+                    : "bg-white/10 cursor-not-allowed"
+                )}
+              >
+                <Play className={cn("w-7 h-7 ml-1 transition-transform", activeSkill && "group-hover:scale-110")} />
+              </button>
+              
+              {!activeSkill && (
+                <p className="text-white/40 text-sm">Select a skill from Skills page to start</p>
+              )}
+            </div>
+
+            {/* Task Selector - Collapsible */}
+            {sessionType === 'pomodoro' && tasks.filter(t => t.status !== 'done').length > 0 && (
+              <div className="space-y-3">
+                <button 
+                  onClick={() => setShowOptions(!showOptions)}
+                  className="flex items-center gap-2 mx-auto text-sm text-white/50 hover:text-white/70 transition-colors"
+                >
+                  {showOptions ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                  {selectedTask ? `Working on: ${selectedTask.title}` : 'Select a task (optional)'}
+                </button>
+                
+                {showOptions && (
+                  <div className="flex flex-wrap justify-center gap-2 animate-in fade-in slide-in-from-top-2 duration-200">
+                    <button
+                      onClick={() => { setSelectedTaskId(''); setShowOptions(false); }}
+                      className={cn(
+                        "px-3 py-1.5 rounded-full text-sm transition-all",
+                        !selectedTaskId ? "bg-primary/20 text-primary border border-primary/30" : "bg-white/5 text-white/60 hover:bg-white/10"
+                      )}
+                    >
+                      Free practice
+                    </button>
+                    {tasks.filter(t => t.status !== 'done').slice(0, 5).map((task) => (
+                      <button
+                        key={task.id}
+                        onClick={() => { setSelectedTaskId(task.id); setShowOptions(false); }}
+                        className={cn(
+                          "px-3 py-1.5 rounded-full text-sm transition-all max-w-[180px] truncate",
+                          selectedTaskId === task.id 
+                            ? "bg-primary/20 text-primary border border-primary/30" 
+                            : "bg-white/5 text-white/60 hover:bg-white/10"
+                        )}
+                      >
+                        {task.title}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </div>
         )}
       </div>
+
+      {/* Bottom Spotify Panel (when expanded) */}
+      {spotifyConnected && showSpotify && (
+        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent backdrop-blur-lg p-6 animate-in slide-in-from-bottom duration-300">
+          <div className="max-w-md mx-auto space-y-4">
+            {/* Now Playing */}
+            {playback?.track && (
+              <div className="text-center">
+                <div className="font-semibold text-white">{playback.track.name}</div>
+                <div className="text-sm text-white/60">{playback.track.artists.join(', ')}</div>
+              </div>
+            )}
+
+            {/* Controls */}
+            <div className="flex items-center justify-center gap-4">
+              <button onClick={handlePrevious} className="p-2 text-white/60 hover:text-white transition-colors">
+                <SkipBack className="w-5 h-5" />
+              </button>
+              <button onClick={handlePlayPause} className="w-12 h-12 rounded-full bg-[#1DB954] flex items-center justify-center hover:scale-105 transition-transform">
+                {playback?.is_playing ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6 ml-0.5" />}
+              </button>
+              <button onClick={handleNext} className="p-2 text-white/60 hover:text-white transition-colors">
+                <SkipForward className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Volume */}
+            <div className="flex items-center gap-3 max-w-[200px] mx-auto">
+              <Volume2 className="w-4 h-4 text-white/40" />
+              <input
+                type="range"
+                min="0"
+                max="100"
+                value={volume}
+                onChange={(e) => handleVolumeChange(parseInt(e.target.value))}
+                className="flex-1 accent-[#1DB954] h-1"
+              />
+            </div>
+
+            {/* Playlists Quick Access */}
+            {playlists.length > 0 && (
+              <div className="flex gap-2 overflow-x-auto pb-2">
+                {playlists.slice(0, 4).map((playlist) => (
+                  <button
+                    key={playlist.id}
+                    onClick={() => handlePlayPlaylist(playlist.uri)}
+                    className="flex-shrink-0 px-3 py-1.5 rounded-full bg-white/10 text-sm text-white/70 hover:bg-white/20 transition-colors"
+                  >
+                    {playlist.name}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            <button onClick={() => setShowSpotify(false)} className="w-full text-center text-xs text-white/40 hover:text-white/60">
+              Hide
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Floating Spotify Toggle (when connected but hidden) */}
+      {spotifyConnected && !showSpotify && (
+        <button
+          onClick={() => setShowSpotify(true)}
+          className="fixed bottom-6 right-6 w-12 h-12 rounded-full bg-[#1DB954]/20 border border-[#1DB954]/30 flex items-center justify-center hover:bg-[#1DB954]/30 transition-all"
+        >
+          <Music className="w-5 h-5 text-[#1DB954]" />
+        </button>
+      )}
     </div>
   );
 }
