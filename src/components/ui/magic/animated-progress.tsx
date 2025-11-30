@@ -9,7 +9,7 @@ interface AnimatedProgressProps {
   className?: string;
   showLabel?: boolean;
   size?: "sm" | "md" | "lg";
-  variant?: "default" | "gradient" | "glow";
+  variant?: "default" | "gradient" | "glow" | "success";
 }
 
 export function AnimatedProgress({
@@ -30,8 +30,9 @@ export function AnimatedProgress({
 
   const variantClasses = {
     default: "bg-primary",
-    gradient: "bg-gradient-to-r from-violet-500 via-purple-500 to-fuchsia-500",
-    glow: "bg-primary shadow-[0_0_10px_rgba(168,85,247,0.5)]",
+    gradient: "bg-gradient-to-r from-primary via-teal-400 to-success",
+    glow: "bg-primary shadow-[0_0_10px_hsl(var(--primary)/0.5)]",
+    success: "bg-success",
   };
 
   return (
@@ -64,7 +65,7 @@ export function AnimatedProgress({
               ease: "easeOut",
             }}
           >
-            <div className="h-full w-full animate-pulse rounded-full bg-gradient-to-r from-violet-400/50 to-purple-500/50" />
+            <div className="h-full w-full animate-pulse rounded-full bg-gradient-to-r from-primary/50 to-teal-400/50" />
           </motion.div>
         )}
       </div>

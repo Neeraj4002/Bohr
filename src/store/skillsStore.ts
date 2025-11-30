@@ -32,8 +32,9 @@ export const useSkillsStore = create<SkillsState>((set, get) => ({
         name: s.name,
         description: s.description,
         goalHours: s.goal_hours,
+        dailyGoalMinutes: s.daily_goal_minutes || 60, // Default to 60 if column doesn't exist
         currentHours: Math.floor(s.current_minutes / 60),
-        currentMinutes: s.current_minutes,
+        currentMinutes: s.current_minutes || 0,
         color: s.color,
         createdAt: s.created_at,
         updatedAt: s.updated_at,
@@ -50,16 +51,20 @@ export const useSkillsStore = create<SkillsState>((set, get) => ({
   createSkill: async (input) => {
     const id = generateId('skill');
     try {
+      console.log('Creating skill with input:', { id, ...input });
       await db.execute(
         'INSERT INTO skills (id, name, description, goal_hours, color) VALUES ($1, $2, $3, $4, $5)',
-        [id, input.name, input.description || '', input.goalHours, input.color || '#6366f1']
+        [id, input.name, input.description || '', input.goalHours, input.color || '#1A73E8']
       );
+      console.log('Skill created successfully, fetching skills...');
       await get().fetchSkills();
       
       // Return the created skill
       const skill = get().skills.find(s => s.id === id);
+      console.log('Found created skill:', skill);
       return skill!;
     } catch (error) {
+      console.error('Failed to create skill:', error);
       set({ error: String(error) });
       throw error;
     }
@@ -87,7 +92,7 @@ export const useSkillsStore = create<SkillsState>((set, get) => ({
         values.push(input.color);
       }
 
-      updates.push("updated_at = datetime('now')");
+      updates.push("updated_at = NOW()");
       values.push(input.id);
 
       await db.execute(
@@ -129,7 +134,7 @@ export const useSkillsStore = create<SkillsState>((set, get) => ({
   addMinutesToSkill: async (id, minutes) => {
     try {
       await db.execute(
-        'UPDATE skills SET current_minutes = current_minutes + $1, updated_at = datetime("now") WHERE id = $2',
+        'UPDATE skills SET current_minutes = current_minutes + $1, updated_at = NOW() WHERE id = $2',
         [minutes, id]
       );
       await get().fetchSkills();

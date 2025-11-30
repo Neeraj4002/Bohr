@@ -97,7 +97,7 @@ export const useTasksStore = create<TasksState>((set, get) => ({
         values.push(input.status);
         
         if (input.status === 'done') {
-          updates.push('completed_at = datetime("now")');
+          updates.push('completed_at = NOW()');
         }
       }
       if (input.priority !== undefined) {
@@ -146,7 +146,7 @@ export const useTasksStore = create<TasksState>((set, get) => ({
       const values: any[] = [status];
       
       if (status === 'done') {
-        updates.push('completed_at = datetime("now")');
+        updates.push('completed_at = NOW()');
       }
       
       values.push(id);

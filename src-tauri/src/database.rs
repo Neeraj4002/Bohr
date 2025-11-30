@@ -51,6 +51,9 @@ pub fn get_migrations() -> Vec<Migration> {
                     title TEXT NOT NULL,
                     description TEXT,
                     status TEXT NOT NULL DEFAULT 'todo',
+                    priority TEXT NOT NULL DEFAULT 'medium',
+                    due_date TEXT,
+                    estimated_pomodoros INTEGER NOT NULL DEFAULT 1,
                     pomodoro_sessions INTEGER NOT NULL DEFAULT 0,
                     total_minutes INTEGER NOT NULL DEFAULT 0,
                     order_index INTEGER NOT NULL DEFAULT 0,
@@ -196,6 +199,30 @@ pub fn get_migrations() -> Vec<Migration> {
                 CREATE INDEX IF NOT EXISTS idx_timer_sessions_skill_id ON timer_sessions(skill_id);
                 CREATE INDEX IF NOT EXISTS idx_timer_sessions_task_id ON timer_sessions(task_id);
                 CREATE INDEX IF NOT EXISTS idx_timer_sessions_created_at ON timer_sessions(created_at);
+            ",
+            kind: MigrationKind::Up,
+        },
+        Migration {
+            version: 5,
+            description: "add_task_priority_duedate_estimated",
+            sql: "
+                -- These columns may already exist from initial migration
+                -- SQLite doesn't have IF NOT EXISTS for ALTER TABLE, so we handle it differently
+                -- by checking if column exists first via a no-op approach
+                -- Just update defaults for existing rows that might have NULL values
+                UPDATE tasks SET priority = 'medium' WHERE priority IS NULL;
+                UPDATE tasks SET estimated_pomodoros = 1 WHERE estimated_pomodoros IS NULL;
+            ",
+            kind: MigrationKind::Up,
+        },
+        Migration {
+            version: 6,
+            description: "add_user_settings_goal_columns",
+            sql: "
+                -- Add daily and weekly goal columns to user_settings
+                ALTER TABLE user_settings ADD COLUMN daily_goal_minutes INTEGER NOT NULL DEFAULT 240;
+                ALTER TABLE user_settings ADD COLUMN weekly_goal_minutes INTEGER NOT NULL DEFAULT 420;
+                ALTER TABLE user_settings ADD COLUMN email TEXT;
             ",
             kind: MigrationKind::Up,
         },

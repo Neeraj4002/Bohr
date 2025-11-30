@@ -1,11 +1,15 @@
 /**
  * Centralized Database Service
  * Single source of truth for all database operations
+ * Using PostgreSQL
  */
 import Database from '@tauri-apps/plugin-sql';
 
 let dbInstance: Database | null = null;
 let dbInitPromise: Promise<Database> | null = null;
+
+// PostgreSQL connection string - update with your credentials
+const PG_CONNECTION = 'postgres://postgres:orms@localhost:5432/tenkhoursapp';
 
 /**
  * Get the database instance (singleton pattern)
@@ -21,9 +25,13 @@ export async function getDatabase(): Promise<Database> {
     return dbInitPromise;
   }
 
-  dbInitPromise = Database.load('sqlite:app.db').then((db) => {
+  dbInitPromise = Database.load(PG_CONNECTION).then((db) => {
+    console.log('PostgreSQL database connected successfully');
     dbInstance = db;
     return db;
+  }).catch((err) => {
+    console.error('Failed to connect to PostgreSQL:', err);
+    throw err;
   });
 
   return dbInitPromise;

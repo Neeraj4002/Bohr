@@ -3,7 +3,6 @@ import { useUserStore } from '@/store/userStore';
 import { useThemeStore } from '@/store/themeStore';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { 
   User, 
   Bell, 
@@ -156,10 +155,11 @@ export default function Settings() {
   };
 
   return (
+    <div className="h-full overflow-y-auto p-6">
     <div className="max-w-5xl mx-auto">
       <div className="mb-8">
-        <h1 className="text-4xl font-bold tracking-tight">Settings</h1>
-        <p className="text-muted-foreground mt-2">
+        <h1 className="text-3xl font-medium tracking-tight text-gray-900 dark:text-white">Settings</h1>
+        <p className="text-gray-500 mt-1">
           Customize your 10,000 Hours experience
         </p>
       </div>
@@ -167,16 +167,16 @@ export default function Settings() {
       <div className="flex gap-8">
         {/* Sidebar Navigation */}
         <div className="w-48 flex-shrink-0">
-          <nav className="space-y-1">
+          <nav className="elevation-1 rounded-xl bg-white dark:bg-card p-2 space-y-1">
             {SECTIONS.map((section) => (
               <button
                 key={section.id}
                 onClick={() => setActiveSection(section.id)}
                 className={cn(
-                  "w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors",
+                  "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all",
                   activeSection === section.id
-                    ? "bg-primary text-primary-foreground"
-                    : "hover:bg-muted text-muted-foreground hover:text-foreground"
+                    ? "bg-primary text-white"
+                    : "hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
                 )}
               >
                 {section.icon}
@@ -190,78 +190,82 @@ export default function Settings() {
         <div className="flex-1 space-y-6">
           {/* Profile Section */}
           {activeSection === 'profile' && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Profile</CardTitle>
-                <CardDescription>Your personal information</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
+            <div className="elevation-1 rounded-xl bg-white dark:bg-card">
+              <div className="p-5 border-b border-gray-100 dark:border-gray-800">
+                <h3 className="text-base font-medium text-gray-900 dark:text-white">Profile</h3>
+                <p className="text-sm text-gray-500 mt-1">Your personal information</p>
+              </div>
+              <div className="p-5 space-y-4">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Display Name</label>
+                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Display Name</label>
                   <Input
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="Your name"
+                    className="border-gray-200 dark:border-gray-700 focus:ring-primary"
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Email</label>
+                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Email</label>
                   <Input
                     value={profile?.email || ''}
                     disabled
-                    className="bg-muted"
+                    className="bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700"
                   />
-                  <p className="text-xs text-muted-foreground">Email cannot be changed</p>
+                  <p className="text-xs text-gray-500">Email cannot be changed</p>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           )}
 
           {/* Timer Section */}
           {activeSection === 'timer' && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Timer Settings</CardTitle>
-                <CardDescription>Configure your Pomodoro timer</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
+            <div className="elevation-1 rounded-xl bg-white dark:bg-card">
+              <div className="p-5 border-b border-gray-100 dark:border-gray-800">
+                <h3 className="text-base font-medium text-gray-900 dark:text-white">Timer Settings</h3>
+                <p className="text-sm text-gray-500 mt-1">Configure your Pomodoro timer</p>
+              </div>
+              <div className="p-5 space-y-4">
                 <div className="grid grid-cols-3 gap-4">
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">Focus Time (min)</label>
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Focus Time (min)</label>
                     <Input
                       type="number"
                       min={1}
                       max={120}
                       value={pomodoroMinutes}
                       onChange={(e) => setPomodoroMinutes(parseInt(e.target.value) || 25)}
+                      className="border-gray-200 dark:border-gray-700"
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">Short Break (min)</label>
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Short Break (min)</label>
                     <Input
                       type="number"
                       min={1}
                       max={30}
                       value={shortBreakMinutes}
                       onChange={(e) => setShortBreakMinutes(parseInt(e.target.value) || 5)}
+                      className="border-gray-200 dark:border-gray-700"
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">Long Break (min)</label>
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Long Break (min)</label>
                     <Input
                       type="number"
                       min={1}
                       max={60}
                       value={longBreakMinutes}
                       onChange={(e) => setLongBreakMinutes(parseInt(e.target.value) || 15)}
+                      className="border-gray-200 dark:border-gray-700"
                     />
                   </div>
                 </div>
                 
-                <div className="flex items-center justify-between py-3 border-t">
+                <div className="flex items-center justify-between py-3 border-t border-gray-100 dark:border-gray-800">
                   <div>
-                    <p className="font-medium">Auto-start Breaks</p>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="font-medium text-gray-900 dark:text-white">Auto-start Breaks</p>
+                    <p className="text-sm text-gray-500">
                       Automatically start break timer after focus session
                     </p>
                   </div>
@@ -269,73 +273,75 @@ export default function Settings() {
                     onClick={() => setAutoStartBreaks(!autoStartBreaks)}
                     className={cn(
                       "relative w-11 h-6 rounded-full transition-colors",
-                      autoStartBreaks ? "bg-primary" : "bg-muted"
+                      autoStartBreaks ? "bg-primary" : "bg-gray-200 dark:bg-gray-700"
                     )}
                   >
                     <span
                       className={cn(
-                        "absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform",
+                        "absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform shadow-sm",
                         autoStartBreaks && "translate-x-5"
                       )}
                     />
                   </button>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           )}
 
           {/* Goals Section */}
           {activeSection === 'goals' && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Goals</CardTitle>
-                <CardDescription>Set your daily and weekly targets</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
+            <div className="elevation-1 rounded-xl bg-white dark:bg-card">
+              <div className="p-5 border-b border-gray-100 dark:border-gray-800">
+                <h3 className="text-base font-medium text-gray-900 dark:text-white">Goals</h3>
+                <p className="text-sm text-gray-500 mt-1">Set your daily and weekly targets</p>
+              </div>
+              <div className="p-5 space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">Daily Goal (hours)</label>
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Daily Goal (hours)</label>
                     <Input
                       type="number"
                       min={1}
                       max={24}
                       value={dailyGoalHours}
                       onChange={(e) => setDailyGoalHours(parseInt(e.target.value) || 4)}
+                      className="border-gray-200 dark:border-gray-700"
                     />
-                    <p className="text-xs text-muted-foreground">Hours to practice each day</p>
+                    <p className="text-xs text-gray-500">Hours to practice each day</p>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">Weekly Goal (hours)</label>
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Weekly Goal (hours)</label>
                     <Input
                       type="number"
                       min={1}
                       max={168}
                       value={weeklyGoalHours}
                       onChange={(e) => setWeeklyGoalHours(parseInt(e.target.value) || 40)}
+                      className="border-gray-200 dark:border-gray-700"
                     />
-                    <p className="text-xs text-muted-foreground">Hours to practice each week</p>
+                    <p className="text-xs text-gray-500">Hours to practice each week</p>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           )}
 
           {/* Appearance Section */}
           {activeSection === 'appearance' && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Appearance</CardTitle>
-                <CardDescription>Customize how the app looks</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
+            <div className="elevation-1 rounded-xl bg-white dark:bg-card">
+              <div className="p-5 border-b border-gray-100 dark:border-gray-800">
+                <h3 className="text-base font-medium text-gray-900 dark:text-white">Appearance</h3>
+                <p className="text-sm text-gray-500 mt-1">Customize how the app looks</p>
+              </div>
+              <div className="p-5 space-y-4">
                 <div>
-                  <label className="text-sm font-medium mb-3 block">Theme</label>
+                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3 block">Theme</label>
                   <div className="flex gap-3">
                     <button
                       onClick={() => setTheme('light')}
                       className={cn(
-                        "flex items-center gap-2 px-4 py-3 rounded-lg border-2 transition-all",
-                        theme === 'light' ? "border-primary bg-primary/5" : "border-muted hover:border-muted-foreground/30"
+                        "flex items-center gap-2 px-4 py-3 rounded-xl border-2 transition-all",
+                        theme === 'light' ? "border-primary bg-primary/5" : "border-gray-200 dark:border-gray-700 hover:border-gray-300"
                       )}
                     >
                       <Sun className="w-5 h-5" />
@@ -344,8 +350,8 @@ export default function Settings() {
                     <button
                       onClick={() => setTheme('dark')}
                       className={cn(
-                        "flex items-center gap-2 px-4 py-3 rounded-lg border-2 transition-all",
-                        theme === 'dark' ? "border-primary bg-primary/5" : "border-muted hover:border-muted-foreground/30"
+                        "flex items-center gap-2 px-4 py-3 rounded-xl border-2 transition-all",
+                        theme === 'dark' ? "border-primary bg-primary/5" : "border-gray-200 dark:border-gray-700 hover:border-gray-300"
                       )}
                     >
                       <Moon className="w-5 h-5" />
@@ -353,22 +359,22 @@ export default function Settings() {
                     </button>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           )}
 
           {/* Notifications Section */}
           {activeSection === 'notifications' && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Notifications</CardTitle>
-                <CardDescription>Configure alerts and sounds</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
+            <div className="elevation-1 rounded-xl bg-white dark:bg-card">
+              <div className="p-5 border-b border-gray-100 dark:border-gray-800">
+                <h3 className="text-base font-medium text-gray-900 dark:text-white">Notifications</h3>
+                <p className="text-sm text-gray-500 mt-1">Configure alerts and sounds</p>
+              </div>
+              <div className="p-5 space-y-4">
                 <div className="flex items-center justify-between py-3">
                   <div>
-                    <p className="font-medium">Desktop Notifications</p>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="font-medium text-gray-900 dark:text-white">Desktop Notifications</p>
+                    <p className="text-sm text-gray-500">
                       Show notifications when timer completes
                     </p>
                   </div>
@@ -376,22 +382,22 @@ export default function Settings() {
                     onClick={() => setNotificationsEnabled(!notificationsEnabled)}
                     className={cn(
                       "relative w-11 h-6 rounded-full transition-colors",
-                      notificationsEnabled ? "bg-primary" : "bg-muted"
+                      notificationsEnabled ? "bg-primary" : "bg-gray-200 dark:bg-gray-700"
                     )}
                   >
                     <span
                       className={cn(
-                        "absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform",
+                        "absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform shadow-sm",
                         notificationsEnabled && "translate-x-5"
                       )}
                     />
                   </button>
                 </div>
 
-                <div className="flex items-center justify-between py-3 border-t">
+                <div className="flex items-center justify-between py-3 border-t border-gray-100 dark:border-gray-800">
                   <div>
-                    <p className="font-medium">Sound Effects</p>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="font-medium text-gray-900 dark:text-white">Sound Effects</p>
+                    <p className="text-sm text-gray-500">
                       Play sounds for timer events
                     </p>
                   </div>
@@ -399,59 +405,59 @@ export default function Settings() {
                     onClick={() => setSoundEnabled(!soundEnabled)}
                     className={cn(
                       "relative w-11 h-6 rounded-full transition-colors",
-                      soundEnabled ? "bg-primary" : "bg-muted"
+                      soundEnabled ? "bg-primary" : "bg-gray-200 dark:bg-gray-700"
                     )}
                   >
                     <span
                       className={cn(
-                        "absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform",
+                        "absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform shadow-sm",
                         soundEnabled && "translate-x-5"
                       )}
                     />
                   </button>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           )}
 
           {/* Data Section */}
           {activeSection === 'data' && (
             <div className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Export Data</CardTitle>
-                  <CardDescription>Download a backup of all your data</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Button onClick={handleExportData}>
+              <div className="elevation-1 rounded-xl bg-white dark:bg-card">
+                <div className="p-5 border-b border-gray-100 dark:border-gray-800">
+                  <h3 className="text-base font-medium text-gray-900 dark:text-white">Export Data</h3>
+                  <p className="text-sm text-gray-500 mt-1">Download a backup of all your data</p>
+                </div>
+                <div className="p-5">
+                  <Button onClick={handleExportData} className="elevation-1">
                     <Download className="w-4 h-4 mr-2" />
                     Export to JSON
                   </Button>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
 
-              <Card className="border-destructive/50">
-                <CardHeader>
-                  <CardTitle className="text-destructive">Danger Zone</CardTitle>
-                  <CardDescription>Irreversible actions</CardDescription>
-                </CardHeader>
-                <CardContent>
+              <div className="elevation-1 rounded-xl bg-white dark:bg-card border-2 border-gred/30">
+                <div className="p-5 border-b border-gray-100 dark:border-gray-800">
+                  <h3 className="text-base font-medium text-gred">Danger Zone</h3>
+                  <p className="text-sm text-gray-500 mt-1">Irreversible actions</p>
+                </div>
+                <div className="p-5">
                   <Button variant="destructive" onClick={handleClearData}>
                     <Trash2 className="w-4 h-4 mr-2" />
                     Clear All Data
                   </Button>
-                  <p className="text-xs text-muted-foreground mt-2">
+                  <p className="text-xs text-gray-500 mt-2">
                     This will permanently delete all your skills, tasks, sessions, and achievements.
                   </p>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             </div>
           )}
 
           {/* Save Button */}
           {activeSection !== 'data' && (
             <div className="flex justify-end">
-              <Button onClick={handleSaveSettings} disabled={saving}>
+              <Button onClick={handleSaveSettings} disabled={saving} className="elevation-1 hover:elevation-2">
                 <Save className="w-4 h-4 mr-2" />
                 {saving ? 'Saving...' : 'Save Changes'}
               </Button>
@@ -459,6 +465,7 @@ export default function Settings() {
           )}
         </div>
       </div>
+    </div>
     </div>
   );
 }

@@ -54,31 +54,31 @@ export default function Header() {
   }, [status, pauseTimer, resumeTimer, stopTimer, navigate]);
 
   return (
-    <header className="h-16 border-b bg-card flex items-center justify-between px-8">
+    <header className="h-16 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-card flex items-center justify-between px-8 elevation-0">
       <div className="flex items-center gap-4">
         {status !== 'idle' && (
-          <div className="flex items-center gap-3 px-4 py-2 bg-accent rounded-lg">
+          <div className="flex items-center gap-3 px-4 py-2 bg-primary/10 rounded-full elevation-1">
             <div className={cn(
               "w-2 h-2 rounded-full",
-              status === 'running' ? "bg-green-500 animate-pulse" : "bg-yellow-500"
+              status === 'running' ? "bg-success animate-pulse" : "bg-warning"
             )} />
-            <span className="text-sm font-medium">
+            <span className="text-sm font-medium text-primary">
               {type === 'pomodoro' ? 'Focus' : type === 'short-break' ? 'Short Break' : 'Long Break'}
             </span>
-            <span className="text-sm font-mono font-bold">{formatTime(remainingSeconds)}</span>
+            <span className="text-sm font-medium tabular-nums text-foreground">{formatTime(remainingSeconds)}</span>
             
             {/* Quick controls */}
-            <div className="flex items-center gap-1 ml-2 border-l pl-2">
+            <div className="flex items-center gap-1 ml-2 border-l border-primary/20 pl-2">
               {status === 'running' ? (
-                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => pauseTimer()}>
+                <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-primary/10 rounded-full" onClick={() => pauseTimer()}>
                   <Pause className="w-4 h-4" />
                 </Button>
               ) : (
-                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => resumeTimer()}>
+                <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-primary/10 rounded-full" onClick={() => resumeTimer()}>
                   <Play className="w-4 h-4" />
                 </Button>
               )}
-              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => stopTimer()}>
+              <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-destructive/10 hover:text-destructive rounded-full" onClick={() => stopTimer()}>
                 <Square className="w-4 h-4" />
               </Button>
             </div>
@@ -91,31 +91,32 @@ export default function Header() {
         <Button 
           variant="ghost" 
           size="icon"
+          className="hover:bg-accent rounded-full"
           title="Keyboard Shortcuts: Space = Pause/Resume, Esc = Stop, Ctrl+F = Focus Mode"
         >
-          <Keyboard className="w-5 h-5" />
+          <Keyboard className="w-5 h-5 text-muted-foreground" />
         </Button>
         
         {/* Theme toggle */}
-        <Button variant="ghost" size="icon" onClick={toggleTheme}>
+        <Button variant="ghost" size="icon" className="hover:bg-accent" onClick={toggleTheme}>
           {resolvedTheme === 'dark' ? (
-            <Sun className="w-5 h-5" />
+            <Sun className="w-5 h-5 text-muted-foreground" />
           ) : (
-            <Moon className="w-5 h-5" />
+            <Moon className="w-5 h-5 text-muted-foreground" />
           )}
         </Button>
         
-        <Button variant="ghost" size="icon">
-          <Bell className="w-5 h-5" />
+        <Button variant="ghost" size="icon" className="hover:bg-accent">
+          <Bell className="w-5 h-5 text-muted-foreground" />
         </Button>
-        <Button variant="ghost" size="icon" onClick={() => navigate('/profile')}>
-          <Settings className="w-5 h-5" />
+        <Button variant="ghost" size="icon" className="hover:bg-accent" onClick={() => navigate('/profile')}>
+          <Settings className="w-5 h-5 text-muted-foreground" />
         </Button>
-        <div className="flex items-center gap-3 pl-4 border-l">
-          <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-semibold">
+        <div className="flex items-center gap-3 pl-4 border-l border-border">
+          <div className="w-9 h-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold text-sm shadow-glow">
             {profile?.name?.charAt(0).toUpperCase() || 'U'}
           </div>
-          <span className="text-sm font-medium">{profile?.name || 'User'}</span>
+          <span className="text-sm font-semibold">{profile?.name || 'User'}</span>
         </div>
       </div>
     </header>

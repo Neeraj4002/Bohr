@@ -22,6 +22,8 @@ import {
   useSensors,
   DragStartEvent,
   DragEndEvent,
+  DragOverEvent,
+  useDroppable,
 } from '@dnd-kit/core';
 import {
   SortableContext,
@@ -31,18 +33,19 @@ import {
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
+// Google Material Design colors
 const PRIORITY_COLORS: Record<TaskPriority, string> = {
   low: 'text-gray-500',
-  medium: 'text-blue-500',
-  high: 'text-orange-500',
-  urgent: 'text-red-500',
+  medium: 'text-gblue',
+  high: 'text-gyellow-600',
+  urgent: 'text-gred',
 };
 
 const PRIORITY_BG: Record<TaskPriority, string> = {
   low: 'bg-gray-100 dark:bg-gray-800',
-  medium: 'bg-blue-100 dark:bg-blue-900/30',
-  high: 'bg-orange-100 dark:bg-orange-900/30',
-  urgent: 'bg-red-100 dark:bg-red-900/30',
+  medium: 'bg-gblue/10 dark:bg-gblue/20',
+  high: 'bg-gyellow/10 dark:bg-gyellow/20',
+  urgent: 'bg-gred/10 dark:bg-gred/20',
 };
 
 interface TaskCardProps {
@@ -72,9 +75,10 @@ function TaskCard({ task, onEdit, onDelete, onStartTimer }: TaskCardProps) {
 
   return (
     <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
-      <Card className={cn(
-        "p-4 mb-3 hover:shadow-md transition-all cursor-grab active:cursor-grabbing group",
-        isOverdue && "border-red-300 dark:border-red-800"
+      <div className={cn(
+        "elevation-1 hover:elevation-2 p-4 mb-3 rounded-xl transition-all cursor-grab active:cursor-grabbing group bg-white dark:bg-card",
+        isDragging && "elevation-3 scale-105 rotate-1",
+        isOverdue && "border-2 border-gred/50"
       )}>
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1 min-w-0">
@@ -82,12 +86,12 @@ function TaskCard({ task, onEdit, onDelete, onStartTimer }: TaskCardProps) {
               {task.priority && task.priority !== 'medium' && (
                 <Flag className={cn("w-3 h-3", PRIORITY_COLORS[task.priority])} />
               )}
-              <h3 className="font-semibold text-sm truncate">{task.title}</h3>
+              <h3 className="font-medium text-sm truncate text-gray-900 dark:text-gray-100">{task.title}</h3>
             </div>
             {task.description && (
-              <p className="text-xs text-muted-foreground line-clamp-2 mb-2">{task.description}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2 mb-2">{task.description}</p>
             )}
-            <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+            <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500">
               <span className="flex items-center gap-1">
                 <Clock className="w-3 h-3" />
                 {task.pomodoroSessions}/{task.estimatedPomodoros || 1}
@@ -95,7 +99,7 @@ function TaskCard({ task, onEdit, onDelete, onStartTimer }: TaskCardProps) {
               {task.dueDate && (
                 <span className={cn(
                   "flex items-center gap-1",
-                  isOverdue && "text-red-500 font-medium"
+                  isOverdue && "text-gred font-medium"
                 )}>
                   <Calendar className="w-3 h-3" />
                   {formatDate(task.dueDate)}
@@ -111,7 +115,7 @@ function TaskCard({ task, onEdit, onDelete, onStartTimer }: TaskCardProps) {
                 e.stopPropagation();
                 onEdit(task);
               }}
-              className="h-7 w-7 p-0"
+              className="h-7 w-7 p-0 hover:bg-gray-100 dark:hover:bg-gray-800"
             >
               <Pencil className="w-3 h-3" />
             </Button>
@@ -122,7 +126,7 @@ function TaskCard({ task, onEdit, onDelete, onStartTimer }: TaskCardProps) {
                 e.stopPropagation();
                 onStartTimer(task.id, task.skillId);
               }}
-              className="h-7 w-7 p-0 text-green-600"
+              className="h-7 w-7 p-0 text-ggreen hover:text-ggreen hover:bg-ggreen/10"
             >
               <Play className="w-3 h-3" />
             </Button>
@@ -133,13 +137,13 @@ function TaskCard({ task, onEdit, onDelete, onStartTimer }: TaskCardProps) {
                 e.stopPropagation();
                 onDelete(task.id);
               }}
-              className="h-7 w-7 p-0 text-red-600 hover:text-red-700"
+              className="h-7 w-7 p-0 text-gred hover:text-gred hover:bg-gred/10"
             >
               <Trash2 className="w-3 h-3" />
             </Button>
           </div>
         </div>
-      </Card>
+      </div>
     </div>
   );
 }
@@ -156,23 +160,49 @@ interface KanbanColumnProps {
 
 function KanbanColumn({ title, status, tasks, color, onEdit, onDelete, onStartTimer }: KanbanColumnProps) {
   const taskIds = tasks.map(t => t.id);
+  const isTodo = status === 'todo';
+  
+  // Make the column itself droppable
+  const { setNodeRef, isOver } = useDroppable({
+    id: `column-${status}`,
+    data: { status },
+  });
 
   return (
-    <div className="flex-1 min-w-[300px]">
-      <div className="bg-muted/50 rounded-lg p-4">
+    <div 
+      className="flex-1 min-w-[280px]"
+      data-status={status}
+    >
+      <div className={cn(
+        "bg-gray-50 dark:bg-gray-900/50 rounded-xl p-4 elevation-1 transition-all duration-200",
+        isOver && "ring-2 ring-primary ring-offset-2 dark:ring-offset-gray-900"
+      )}>
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <div className={cn("w-3 h-3 rounded-full", color)} />
-            <h3 className="font-semibold text-sm uppercase tracking-wide">
+            <h3 className={cn(
+              "font-medium text-sm uppercase tracking-wide text-gray-700 dark:text-gray-300",
+              isTodo && "text-primary"
+            )}>
               {title}
             </h3>
           </div>
-          <span className="text-xs text-muted-foreground bg-background px-2 py-1 rounded-full">
+          <span className={cn(
+            "text-xs px-2.5 py-1 rounded-md font-medium",
+            isTodo ? "bg-primary text-white" : "bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 elevation-1"
+          )}>
             {tasks.length}
           </span>
         </div>
         <SortableContext items={taskIds} strategy={verticalListSortingStrategy}>
-          <div className="space-y-2 min-h-[200px]">
+          <div 
+            ref={setNodeRef}
+            className={cn(
+              "space-y-2 min-h-[200px] rounded-lg transition-colors",
+              isOver && "bg-primary/5"
+            )}
+            data-droppable-status={status}
+          >
             {tasks.map((task) => (
               <TaskCard
                 key={task.id}
@@ -183,8 +213,11 @@ function KanbanColumn({ title, status, tasks, color, onEdit, onDelete, onStartTi
               />
             ))}
             {tasks.length === 0 && (
-              <div className="text-center py-8 text-muted-foreground text-sm">
-                No tasks
+              <div className={cn(
+                "text-center py-8 text-gray-400 text-sm border-2 border-dashed rounded-xl transition-colors",
+                isOver ? "border-primary bg-primary/10 text-primary" : "border-gray-200 dark:border-gray-700"
+              )}>
+                Drop tasks here
               </div>
             )}
           </div>
@@ -341,14 +374,14 @@ export default function Tasks() {
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
     
+    setActiveId(null);
+    
     if (!over) {
-      setActiveId(null);
       return;
     }
 
     const activeTask = tasks.find(t => t.id === active.id);
     if (!activeTask) {
-      setActiveId(null);
       return;
     }
 
@@ -356,18 +389,38 @@ export default function Tasks() {
     const overId = over.id as string;
     let targetStatus: TaskStatus | null = null;
 
-    // Check if dropped on a task or column
-    const overTask = tasks.find(t => t.id === overId);
-    if (overTask) {
-      targetStatus = overTask.status;
+    // Check if dropped on a column (useDroppable id is 'column-{status}')
+    if (overId.startsWith('column-')) {
+      const status = overId.replace('column-', '');
+      if (['todo', 'in-progress', 'done'].includes(status)) {
+        targetStatus = status as TaskStatus;
+      }
+    }
+    
+    // Check if dropped on a task - get that task's status
+    if (!targetStatus) {
+      const overTask = tasks.find(t => t.id === overId);
+      if (overTask) {
+        targetStatus = overTask.status;
+      }
+    }
+
+    // Also check the over.data for column status (from useDroppable data)
+    if (!targetStatus && over.data?.current?.status) {
+      const status = over.data.current.status;
+      if (['todo', 'in-progress', 'done'].includes(status)) {
+        targetStatus = status as TaskStatus;
+      }
     }
 
     if (targetStatus && activeTask.status !== targetStatus) {
-      await updateTaskStatus(activeTask.id, targetStatus);
-      toast.success(`Task moved to ${targetStatus.replace('-', ' ')}`);
+      try {
+        await updateTaskStatus(activeTask.id, targetStatus);
+        toast.success(`Task moved to ${targetStatus === 'in-progress' ? 'In Progress' : targetStatus === 'todo' ? 'To Do' : 'Done'}`);
+      } catch (error) {
+        toast.error('Failed to move task');
+      }
     }
-
-    setActiveId(null);
   };
 
   const todoTasks = tasks.filter(t => t.status === 'todo');
@@ -378,30 +431,33 @@ export default function Tasks() {
   const selectedSkill = skills.find(s => s.id === selectedSkillId);
 
   return (
+    <div className="h-full overflow-y-auto p-6">
     <div className="space-y-6 max-w-7xl mx-auto">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-4xl font-bold tracking-tight">Tasks</h1>
-          <p className="text-muted-foreground mt-2">
+          <h1 className="text-3xl font-medium tracking-tight text-gray-900 dark:text-white">Tasks</h1>
+          <p className="text-gray-500 mt-1">
             Organize your work with Kanban boards
           </p>
         </div>
-        <Button onClick={openCreateModal} disabled={!selectedSkillId}>
+        <Button onClick={openCreateModal} disabled={!selectedSkillId} className="elevation-1 hover:elevation-2">
           <Plus className="w-4 h-4 mr-2" />
           Add Task
         </Button>
       </div>
 
       {/* Skill Selector */}
-      <Card className="p-4">
+      <div className="elevation-1 rounded-xl p-5 bg-white dark:bg-card">
         <div className="flex items-center gap-4">
-          <Target className="w-5 h-5 text-muted-foreground" />
+          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+            <Target className="w-5 h-5 text-primary" />
+          </div>
           <div className="flex-1">
-            <label className="text-sm font-medium mb-1 block">Select Skill</label>
+            <label className="text-sm font-medium mb-1 block text-gray-700 dark:text-gray-300">Select Skill</label>
             <select
               value={selectedSkillId}
               onChange={(e) => setSelectedSkillId(e.target.value)}
-              className="w-full p-2 border rounded-md bg-background"
+              className="w-full p-2.5 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
             >
               <option value="">Choose a skill...</option>
               {skills.map((skill) => (
@@ -413,12 +469,12 @@ export default function Tasks() {
           </div>
           {selectedSkill && (
             <div className="text-right">
-              <div className="text-2xl font-bold">{tasks.length}</div>
-              <div className="text-xs text-muted-foreground">Total Tasks</div>
+              <div className="text-3xl font-bold text-primary">{tasks.length}</div>
+              <div className="text-xs text-gray-500">Total Tasks</div>
             </div>
           )}
         </div>
-      </Card>
+      </div>
 
       {/* Loading State */}
       {loading && <SkeletonKanban />}
@@ -435,7 +491,7 @@ export default function Tasks() {
             <KanbanColumn
               title="To Do"
               status="todo"
-              color="bg-gray-400"
+              color="bg-primary"
               tasks={todoTasks}
               onEdit={openEditModal}
               onDelete={confirmDelete}
@@ -444,7 +500,7 @@ export default function Tasks() {
             <KanbanColumn
               title="In Progress"
               status="in-progress"
-              color="bg-blue-500"
+              color="bg-gyellow"
               tasks={inProgressTasks}
               onEdit={openEditModal}
               onDelete={confirmDelete}
@@ -453,7 +509,7 @@ export default function Tasks() {
             <KanbanColumn
               title="Done"
               status="done"
-              color="bg-green-500"
+              color="bg-ggreen"
               tasks={doneTasks}
               onEdit={openEditModal}
               onDelete={confirmDelete}
@@ -462,22 +518,24 @@ export default function Tasks() {
           </div>
           <DragOverlay>
             {activeTask ? (
-              <Card className="p-4 shadow-lg">
-                <h3 className="font-semibold text-sm">{activeTask.title}</h3>
-              </Card>
+              <div className="elevation-4 p-4 rounded-xl bg-white dark:bg-card rotate-2">
+                <h3 className="font-medium text-sm text-gray-900 dark:text-white">{activeTask.title}</h3>
+              </div>
             ) : null}
           </DragOverlay>
         </DndContext>
       ) : !loading && (
-        <Card className="border-dashed">
+        <div className="elevation-1 rounded-xl border-2 border-dashed border-gray-200 dark:border-gray-700 bg-white dark:bg-card">
           <div className="flex flex-col items-center justify-center py-16">
-            <Target className="w-12 h-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold mb-2">Select a Skill</h3>
-            <p className="text-muted-foreground text-center max-w-sm">
+            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+              <Target className="w-8 h-8 text-primary" />
+            </div>
+            <h3 className="text-lg font-medium mb-2 text-gray-900 dark:text-white">Select a Skill</h3>
+            <p className="text-gray-500 text-center max-w-sm">
               Choose a skill above to view and manage its tasks
             </p>
           </div>
-        </Card>
+        </div>
       )}
 
       {/* Task Modal */}
@@ -565,6 +623,7 @@ export default function Tasks() {
         variant="destructive"
         loading={saving}
       />
+    </div>
     </div>
   );
 }

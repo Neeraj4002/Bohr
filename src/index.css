@@ -1,51 +1,114 @@
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&family=Google+Sans:wght@400;500;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 0 0% 3.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 0 0% 3.9%;
+    /* Google Material Design Light Theme */
+    /* Subtle gray background for app surface - #F8F9FA */
+    --background: 210 20% 98%;
+    --foreground: 213 14% 13%; /* #202124 - Google's dark gray */
+    
+    /* Elevated surfaces: Pure white for cards on gray background */
+    --card: 0 0% 100%; /* Pure white */
+    --card-foreground: 213 14% 13%;
+    
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 3.9%;
-    --primary: 0 0% 9%;
-    --primary-foreground: 0 0% 98%;
-    --secondary: 0 0% 96.1%;
-    --secondary-foreground: 0 0% 9%;
-    --muted: 0 0% 96.1%;
-    --muted-foreground: 0 0% 45.1%;
-    --accent: 0 0% 96.1%;
-    --accent-foreground: 0 0% 9%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 89.8%;
-    --input: 0 0% 89.8%;
-    --ring: 0 0% 3.9%;
+    --popover-foreground: 213 14% 13%;
+    
+    /* Primary: Google Blue for actions */
+    --primary: 214 83% 51%; /* #1A73E8 */
+    --primary-foreground: 0 0% 100%;
+    
+    /* Secondary: Light gray surfaces */
+    --secondary: 210 17% 98%;
+    --secondary-foreground: 213 14% 13%;
+    
+    /* Muted backgrounds */
+    --muted: 210 17% 95%;
+    --muted-foreground: 213 10% 46%;
+    
+    /* Accent: Light blue tint for hover states */
+    --accent: 214 100% 97%;
+    --accent-foreground: 214 83% 51%;
+    
+    /* Destructive: Google Red */
+    --destructive: 5 81% 56%; /* #EA4335 */
+    --destructive-foreground: 0 0% 100%;
+    
+    /* Success: Google Green */
+    --success: 142 53% 43%; /* #34A853 */
+    --success-foreground: 0 0% 100%;
+    
+    /* Warning: Google Yellow */
+    --warning: 43 96% 50%; /* #FBBC04 */
+    --warning-foreground: 213 14% 13%;
+    
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 214 83% 51%;
     --radius: 0.5rem;
+    
+    /* Sidebar: White with subtle border (Google style navigation drawer) */
+    --sidebar-bg: 0 0% 100%;
+    --sidebar-foreground: 213 14% 13%;
+    --sidebar-muted: 213 10% 46%;
+    --sidebar-accent: 214 83% 51%;
+    --sidebar-border: 220 13% 91%;
   }
 
   .dark {
-    --background: 0 0% 3.9%;
-    --foreground: 0 0% 98%;
-    --card: 0 0% 3.9%;
-    --card-foreground: 0 0% 98%;
-    --popover: 0 0% 3.9%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 0 0% 98%;
-    --primary-foreground: 0 0% 9%;
-    --secondary: 0 0% 14.9%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 0 0% 14.9%;
-    --muted-foreground: 0 0% 63.9%;
-    --accent: 0 0% 14.9%;
-    --accent-foreground: 0 0% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 14.9%;
-    --input: 0 0% 14.9%;
-    --ring: 0 0% 83.1%;
+    /* Google Material Design Dark Theme */
+    --background: 210 10% 10%;
+    --foreground: 210 17% 95%;
+    
+    /* Elevated card surfaces */
+    --card: 210 10% 14%;
+    --card-foreground: 210 17% 95%;
+    
+    --popover: 210 10% 14%;
+    --popover-foreground: 210 17% 95%;
+    
+    /* Primary: Lighter Blue for dark mode */
+    --primary: 214 100% 65%; /* Lighter blue for dark bg */
+    --primary-foreground: 210 10% 10%;
+    
+    /* Secondary surfaces */
+    --secondary: 210 10% 18%;
+    --secondary-foreground: 210 17% 95%;
+    
+    /* Muted elements */
+    --muted: 210 10% 18%;
+    --muted-foreground: 210 10% 60%;
+    
+    /* Accent states */
+    --accent: 214 40% 20%;
+    --accent-foreground: 214 100% 70%;
+    
+    /* Destructive: Google Red */
+    --destructive: 5 70% 55%;
+    --destructive-foreground: 0 0% 100%;
+    
+    /* Success: Google Green */
+    --success: 142 50% 50%;
+    --success-foreground: 0 0% 100%;
+    
+    /* Warning: Google Yellow */
+    --warning: 43 90% 55%;
+    --warning-foreground: 210 10% 10%;
+    
+    --border: 210 10% 22%;
+    --input: 210 10% 22%;
+    --ring: 214 100% 65%;
+    
+    /* Sidebar in dark mode */
+    --sidebar-bg: 210 10% 8%;
+    --sidebar-foreground: 210 17% 95%;
+    --sidebar-muted: 210 10% 55%;
+    --sidebar-accent: 214 100% 65%;
+    --sidebar-border: 210 10% 18%;
   }
 }
 
@@ -53,23 +116,139 @@
   * {
     @apply border-border;
   }
+  
+  html {
+    font-family: 'Roboto', 'Google Sans', system-ui, -apple-system, sans-serif;
+  }
+  
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
     font-feature-settings: "rlig" 1, "calt" 1;
+  }
+  
+  /* Google-style typography hierarchy */
+  h1 {
+    @apply text-3xl font-medium tracking-tight;
+    font-family: 'Google Sans', 'Roboto', sans-serif;
+  }
+  
+  h2 {
+    @apply text-2xl font-medium tracking-tight;
+    font-family: 'Google Sans', 'Roboto', sans-serif;
+  }
+  
+  h3 {
+    @apply text-lg font-medium;
+  }
+  
+  /* Massive metrics styling - Google style */
+  .metric-value {
+    @apply text-5xl font-bold tracking-tight tabular-nums;
+    font-family: 'Google Sans', 'Roboto', sans-serif;
+  }
+  
+  .metric-label {
+    @apply text-sm font-normal text-muted-foreground;
   }
 }
 
-/* Custom styles for minimal, Notion-like appearance */
-.notion-minimal {
+/* Material Design Elevation System */
+.elevation-0 {
+  box-shadow: none;
+}
+
+.elevation-1 {
+  box-shadow: 0 1px 2px 0 rgba(60, 64, 67, 0.3), 0 1px 3px 1px rgba(60, 64, 67, 0.15);
+}
+
+.elevation-2 {
+  box-shadow: 0 1px 2px 0 rgba(60, 64, 67, 0.3), 0 2px 6px 2px rgba(60, 64, 67, 0.15);
+}
+
+.elevation-3 {
+  box-shadow: 0 1px 3px 0 rgba(60, 64, 67, 0.3), 0 4px 8px 3px rgba(60, 64, 67, 0.15);
+}
+
+.elevation-4 {
+  box-shadow: 0 2px 3px 0 rgba(60, 64, 67, 0.3), 0 6px 10px 4px rgba(60, 64, 67, 0.15);
+}
+
+.elevation-5 {
+  box-shadow: 0 4px 4px 0 rgba(60, 64, 67, 0.3), 0 8px 12px 6px rgba(60, 64, 67, 0.15);
+}
+
+/* Dark mode elevation adjustments */
+.dark .elevation-1 {
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.5), 0 1px 3px 1px rgba(0, 0, 0, 0.3);
+}
+
+.dark .elevation-2 {
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.5), 0 2px 6px 2px rgba(0, 0, 0, 0.3);
+}
+
+.dark .elevation-3 {
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.5), 0 4px 8px 3px rgba(0, 0, 0, 0.3);
+}
+
+.dark .elevation-4 {
+  box-shadow: 0 2px 3px 0 rgba(0, 0, 0, 0.5), 0 6px 10px 4px rgba(0, 0, 0, 0.3);
+}
+
+.dark .elevation-5 {
+  box-shadow: 0 4px 4px 0 rgba(0, 0, 0, 0.5), 0 8px 12px 6px rgba(0, 0, 0, 0.3);
+}
+
+/* Material Design Ripple Effect */
+.ripple {
+  position: relative;
+  overflow: hidden;
+}
+
+.ripple::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.4);
+  transform: translate(-50%, -50%);
+  opacity: 0;
+}
+
+.ripple:active::after {
+  width: 200%;
+  padding-bottom: 200%;
+  opacity: 0;
+  transition: width 0.4s ease-out, padding-bottom 0.4s ease-out, opacity 0.4s ease-out;
+}
+
+/* Google-style card hover effect */
+.card-hover {
+  @apply transition-all duration-200;
+}
+
+.card-hover:hover {
+  @apply elevation-3;
+  transform: translateY(-1px);
+}
+
+.card-hover:active {
+  @apply elevation-4;
+}
+
+/* Custom styles for Google minimal appearance */
+.google-minimal {
   @apply transition-all duration-200 ease-in-out;
 }
 
 /* Flip timer custom styles */
 .flip-clock {
-  @apply font-mono;
+  font-family: 'Google Sans', 'Roboto', sans-serif;
 }
 
-/* Scrollbar styling */
+/* Scrollbar styling - Google style */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -92,9 +271,10 @@
   @apply backdrop-blur-sm bg-black/50;
 }
 
-/* Kanban board animations */
+/* Kanban board animations - Material Design lift */
 .kanban-card-dragging {
-  @apply opacity-50 rotate-2 scale-105;
+  @apply elevation-5 scale-[1.02];
+  transform-origin: center center;
 }
 
 /* Achievement unlock animation */
@@ -104,7 +284,7 @@
     opacity: 0;
   }
   50% {
-    transform: scale(1.2) rotate(10deg);
+    transform: scale(1.1) rotate(5deg);
   }
   100% {
     transform: scale(1) rotate(0deg);
@@ -113,19 +293,75 @@
 }
 
 .achievement-unlock {
-  animation: achievement-unlock 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+  animation: achievement-unlock 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-/* Timer pulse effect */
+/* Timer pulse effect - subtle Google style */
 @keyframes timer-pulse {
   0%, 100% {
     opacity: 1;
   }
   50% {
-    opacity: 0.5;
+    opacity: 0.7;
   }
 }
 
 .timer-active {
   animation: timer-pulse 2s ease-in-out infinite;
+}
+
+/* Material Design focus glow */
+.focus-glow {
+  box-shadow: 0 0 0 2px hsl(var(--primary) / 0.2);
+}
+
+/* Google Blue glow for Focus Mode timer */
+.timer-glow {
+  text-shadow: 0 0 40px hsl(var(--primary) / 0.6), 0 0 80px hsl(var(--primary) / 0.4);
+}
+
+/* Card lift effect - Google style */
+.card-lift {
+  @apply transition-all duration-200;
+}
+
+.card-lift:hover {
+  @apply elevation-2;
+  transform: translateY(-2px);
+}
+
+/* Smooth number animations */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* FAB (Floating Action Button) styles */
+.fab {
+  @apply rounded-full elevation-3 transition-all duration-200;
+}
+
+.fab:hover {
+  @apply elevation-4;
+}
+
+.fab:active {
+  @apply elevation-5;
+}
+
+/* Material Design state layer */
+.state-layer {
+  @apply relative overflow-hidden;
+}
+
+.state-layer::before {
+  content: '';
+  @apply absolute inset-0 bg-current opacity-0 transition-opacity duration-200;
+}
+
+.state-layer:hover::before {
+  @apply opacity-[0.08];
+}
+
+.state-layer:active::before {
+  @apply opacity-[0.12];
 }

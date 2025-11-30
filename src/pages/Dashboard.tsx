@@ -1,391 +1,415 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Play, Target, Clock, Flame, TrendingUp, Calendar, CheckCircle } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Modal } from '@/components/ui/modal';
-import { Input } from '@/components/ui/input';
-import { SkeletonCard, SkeletonText } from '@/components/ui/skeleton';
-import { NumberTicker, AnimatedProgress, FadeIn, StaggerContainer, StaggerItem, HoverCard, Sparkles } from '@/components/ui/magic';
-import FlipTimer from '@/components/timer/FlipTimer';
-import { useSkillsStore } from '@/store/skillsStore';
-import { useUserStore } from '@/store/userStore';
-import { useTimerStore } from '@/store/timerStore';
-import { useTasksStore } from '@/store/tasksStore';
-import { formatHours, cn } from '@/lib/utils';
-import { toast } from 'sonner';
+import { Plus, Target, ChevronRight, Trophy, Flame, Play, Clock } from 'lucide-react';
+import { Button } from '../components/ui/button';
+import { Modal } from '../components/ui/modal';
+import { Input } from '../components/ui/input';
+import { useSkillsStore } from '../store/skillsStore';
+import { useTasksStore } from '../store/tasksStore';
+import { useTimerStore } from '../store/timerStore';
+import { cn } from '../lib/utils';
 
-// Color presets for skills
-const SKILL_COLORS = [
-  '#6366f1', '#8b5cf6', '#d946ef', '#ec4899', '#f43f5e',
-  '#f97316', '#eab308', '#84cc16', '#22c55e', '#14b8a6',
-];
+// Format minutes to human readable string
+const formatHours = (minutes: number): string => {
+  if (minutes < 60) return `${minutes}m`;
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
+};
+
+// Format percentage
+const formatPercent = (current: number, total: number): number => {
+  if (total === 0) return 0;
+  return Math.round((current / total) * 100);
+};
+
+// Get today's date string
+const getTodayString = (): string => {
+  return new Date().toISOString().split('T')[0];
+};
+
+// Generate last 365 days for consistency calendar
+const generateYearDays = () => {
+  const days = [];
+  const today = new Date();
+  for (let i = 364; i >= 0; i--) {
+    const date = new Date(today);
+    date.setDate(date.getDate() - i);
+    days.push({
+      date: date.toISOString().split('T')[0],
+      dayOfWeek: date.getDay(),
+    });
+  }
+  return days;
+};
+
+// Semicircle Progress Component
+function SemicircleProgress({ 
+  current, 
+  total, 
+  size = 140,
+  strokeWidth = 15,
+}: { 
+  current: number; 
+  total: number; 
+  size?: number;
+  strokeWidth?: number;
+}) {
+  const percentage = total > 0 ? Math.min((current / total) * 100, 100) : 0;
+  const radius = (size - strokeWidth) / 2;
+  const circumference = Math.PI * radius;
+  const strokeDashoffset = circumference - (percentage / 100) * circumference;
+  
+  return (
+    <div className="relative" style={{ width: size, height: size / 2 + 16 }}>
+      <svg width={size} height={size / 2 + strokeWidth} className="overflow-visible">
+        <path
+          d={`M ${strokeWidth / 2} ${size / 2} A ${radius} ${radius} 0 0 1 ${size - strokeWidth / 2} ${size / 2}`}
+          fill="none"
+          stroke="#E5E7EB"
+          strokeWidth={strokeWidth}
+          strokeLinecap="round"
+          className="dark:stroke-gray-700"
+        />
+        <path
+          d={`M ${strokeWidth / 2} ${size / 2} A ${radius} ${radius} 0 0 1 ${size - strokeWidth / 2} ${size / 2}`}
+          fill="none"
+          stroke="#1A73E8"
+          strokeWidth={strokeWidth}
+          strokeLinecap="round"
+          strokeDasharray={circumference}
+          strokeDashoffset={strokeDashoffset}
+          className="transition-all duration-700 ease-out"
+        />
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-end pb-1">
+        <span className="text-2xl font-bold text-gray-900 dark:text-white">{formatHours(current)}</span>
+        <span className="text-xs text-gray-500">of {formatHours(total)}</span>
+      </div>
+    </div>
+  );
+}
+
+// GitHub-style Consistency Calendar
+function ConsistencyCalendar({ activityData }: { activityData: Record<string, number> }) {
+  const yearDays = useMemo(() => generateYearDays(), []);
+  const weeks: typeof yearDays[] = [];
+  
+  let currentWeek: typeof yearDays = [];
+  yearDays.forEach((day, index) => {
+    currentWeek.push(day);
+    if (day.dayOfWeek === 6 || index === yearDays.length - 1) {
+      weeks.push(currentWeek);
+      currentWeek = [];
+    }
+  });
+
+  const getIntensity = (minutes: number) => {
+    if (minutes === 0) return 0;
+    if (minutes < 30) return 1;
+    if (minutes < 60) return 2;
+    if (minutes < 120) return 3;
+    return 4;
+  };
+
+  const intensityColors = [
+    'bg-gray-100 dark:bg-gray-800',
+    'bg-green-200 dark:bg-green-900',
+    'bg-green-300 dark:bg-green-700',
+    'bg-green-500 dark:bg-green-500',
+    'bg-green-600 dark:bg-green-400',
+  ];
+
+  return (
+    <div className="flex gap-[2px] overflow-x-auto">
+      {weeks.map((week, weekIndex) => (
+        <div key={weekIndex} className="flex flex-col gap-[2px]">
+          {week.map((day) => {
+            const minutes = activityData[day.date] || 0;
+            const intensity = getIntensity(minutes);
+            return (
+              <div
+                key={day.date}
+                className={cn("w-[10px] h-[10px] rounded-[2px]", intensityColors[intensity])}
+                title={`${day.date}: ${formatHours(minutes)}`}
+              />
+            );
+          })}
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const { skills, activeSkill, loading: skillsLoading, fetchSkills, createSkill, setActiveSkill } = useSkillsStore();
-  const { profile, fetchProfile } = useUserStore();
-  const { startTimer } = useTimerStore();
+  const { skills, fetchSkills, createSkill } = useSkillsStore();
   const { tasks, fetchTasks } = useTasksStore();
+  const { settings, startTimer } = useTimerStore();
   
-  const [showNewSkillModal, setShowNewSkillModal] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
   const [newSkillName, setNewSkillName] = useState('');
-  const [newSkillColor, setNewSkillColor] = useState(SKILL_COLORS[0]);
-  const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    fetchSkills();
-    fetchProfile();
-  }, [fetchSkills, fetchProfile]);
-
-  // Fetch tasks for active skill
-  useEffect(() => {
-    if (activeSkill) {
-      fetchTasks(activeSkill.id);
+  const [newSkillGoalHours, setNewSkillGoalHours] = useState('10000');
+  const [isLoading, setIsLoading] = useState(true);
+  
+  // Mock activity data for consistency calendar
+  const [activityData] = useState<Record<string, number>>(() => {
+    const data: Record<string, number> = {};
+    const today = new Date();
+    for (let i = 0; i < 365; i++) {
+      const date = new Date(today);
+      date.setDate(date.getDate() - i);
+      data[date.toISOString().split('T')[0]] = Math.random() > 0.4 ? Math.floor(Math.random() * 180) : 0;
     }
-  }, [activeSkill, fetchTasks]);
+    return data;
+  });
+
+  useEffect(() => {
+    const loadData = async () => {
+      setIsLoading(true);
+      await Promise.all([fetchSkills(), fetchTasks()]);
+      setIsLoading(false);
+    };
+    loadData();
+  }, [fetchSkills, fetchTasks]);
+  
+  const todayTasks = useMemo(() => {
+    const today = getTodayString();
+    return tasks.filter(t => 
+      t.status !== 'done' && 
+      (!t.dueDate || t.dueDate.startsWith(today) || new Date(t.dueDate) <= new Date())
+    ).slice(0, 5);
+  }, [tasks]);
+  
+  const totalTodayMinutes = useMemo(() => 
+    skills.reduce((sum, s) => sum + Math.min(s.currentMinutes, s.dailyGoalMinutes || 60), 0), [skills]);
+  
+  const totalDailyGoal = useMemo(() => 
+    skills.reduce((sum, s) => sum + (s.dailyGoalMinutes || 60), 0), [skills]);
+
+  const currentStreak = useMemo(() => {
+    let streak = 0;
+    const today = new Date();
+    for (let i = 0; i < 365; i++) {
+      const date = new Date(today);
+      date.setDate(date.getDate() - i);
+      if (activityData[date.toISOString().split('T')[0]] > 0) streak++;
+      else if (i > 0) break;
+    }
+    return streak;
+  }, [activityData]);
 
   const handleCreateSkill = async () => {
-    if (!newSkillName.trim()) {
-      toast.error('Please enter a skill name');
-      return;
-    }
-
-    setSaving(true);
-    try {
-      await createSkill({
-        name: newSkillName.trim(),
-        color: newSkillColor,
-        goalHours: 10000,
-      });
-      toast.success('Skill created!');
-      setShowNewSkillModal(false);
-      setNewSkillName('');
-    } catch (error) {
-      toast.error('Failed to create skill');
-    } finally {
-      setSaving(false);
-    }
+    if (!newSkillName.trim()) return;
+    await createSkill({ name: newSkillName, goalHours: parseInt(newSkillGoalHours) || 10000 });
+    setNewSkillName('');
+    setNewSkillGoalHours('10000');
+    setShowCreateModal(false);
   };
 
-  const handleStartSession = async (skillId?: string) => {
-    const skill = skillId ? skills.find(s => s.id === skillId) : activeSkill;
-    if (skill) {
-      await setActiveSkill(skill.id);
-      await startTimer('pomodoro', undefined, skill.id, skill.name);
-      navigate('/focus');
-    } else {
-      toast.error('Please select a skill first');
-    }
+  const handleStartTask = (taskId: string, skillId: string, skillName: string) => {
+    startTimer('pomodoro', taskId, skillId, skillName);
+    navigate('/focus');
   };
 
-  const handleSkillClick = async (skillId: string) => {
-    await setActiveSkill(skillId);
-    toast.success('Active skill changed');
-  };
-
-  // Calculate stats
-  const totalHours = profile?.totalMinutes ? profile.totalMinutes / 60 : 0;
-  const todayHours = 0; // TODO: Calculate from daily_activities
-  const weeklyGoal = profile?.weeklyGoalHours || 40;
-  const dailyGoal = profile?.dailyGoalHours || 4;
-  const inProgressTasks = tasks.filter(t => t.status === 'in-progress').length;
-  const completedToday = tasks.filter(t => 
-    t.status === 'done' && 
-    t.completedAt && 
-    new Date(t.completedAt).toDateString() === new Date().toDateString()
-  ).length;
+  const currentHour = new Date().getHours();
 
   return (
-    <div className="space-y-8 max-w-7xl mx-auto">
-      {/* Welcome Section */}
-      <FadeIn direction="down">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-4xl font-bold tracking-tight">
-              Welcome back, {profile?.name || 'User'}
-            </h1>
-            <p className="text-muted-foreground mt-2">
-              {activeSkill 
-                ? `Currently working on: ${activeSkill.name}`
-                : 'Select a skill to start tracking your progress'}
-            </p>
+    <div className="p-4 space-y-3 h-full overflow-auto">
+      {/* Row 1: Quick Stats + Achievements - Thin bar */}
+      <div className="grid grid-cols-12 gap-3">
+        <div className="col-span-8 elevation-1 rounded-lg bg-white dark:bg-card px-4 py-2 flex items-center gap-6">
+          <div className="flex items-center gap-2">
+            <Target className="w-4 h-4 text-primary" />
+            <span className="text-xs text-gray-500">Skills</span>
+            <span className="text-sm font-bold">{skills.length}</span>
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={() => setShowNewSkillModal(true)}>
-              <Plus className="w-4 h-4 mr-2" />
-              New Skill
-            </Button>
-            <Button onClick={() => handleStartSession()} disabled={!activeSkill}>
-              <Play className="w-4 h-4 mr-2" />
-              Start Session
-            </Button>
+          <div className="w-px h-5 bg-gray-200 dark:bg-gray-700" />
+          <div className="flex items-center gap-2">
+            <Clock className="w-4 h-4 text-orange-500" />
+            <span className="text-xs text-gray-500">Pending</span>
+            <span className="text-sm font-bold">{tasks.filter(t => t.status !== 'done').length}</span>
           </div>
-        </div>
-      </FadeIn>
-
-      {/* Main Flip Timer */}
-      <Card className="border-2">
-        <CardHeader className="text-center">
-          <CardTitle className="text-3xl">
-            {activeSkill ? activeSkill.name : '10,000 Hour Journey'}
-          </CardTitle>
-          <CardDescription>
-            {activeSkill 
-              ? `${formatHours(activeSkill.currentMinutes)} / ${activeSkill.goalHours} hours completed`
-              : 'Select a skill to begin tracking'}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex justify-center py-8">
-          <FlipTimer skillId={activeSkill?.id} />
-        </CardContent>
-      </Card>
-
-      {/* Stats Overview */}
-      <StaggerContainer className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {skillsLoading ? (
-          <>
-            <SkeletonCard />
-            <SkeletonCard />
-            <SkeletonCard />
-            <SkeletonCard />
-          </>
-        ) : (
-          <>
-            <StaggerItem>
-              <HoverCard>
-                <Card className="hover:border-primary/50 transition-colors">
-                  <CardHeader className="flex flex-row items-center justify-between pb-2">
-                    <CardTitle className="text-sm font-medium">Total Hours</CardTitle>
-                    <Clock className="w-4 h-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-3xl font-bold">
-                      <NumberTicker value={Math.floor((profile?.totalMinutes || 0) / 60)} />
-                      <span className="text-lg text-muted-foreground ml-1">h</span>
-                    </div>
-                    <p className="text-xs text-muted-foreground">across all skills</p>
-                  </CardContent>
-                </Card>
-              </HoverCard>
-            </StaggerItem>
-
-            <StaggerItem>
-              <HoverCard>
-                <Card className="hover:border-primary/50 transition-colors">
-                  <CardHeader className="flex flex-row items-center justify-between pb-2">
-                    <CardTitle className="text-sm font-medium">Current Streak</CardTitle>
-                    <Flame className="w-4 h-4 text-orange-500" />
-                  </CardHeader>
-                  <CardContent>
-                    <Sparkles active={(profile?.currentStreak || 0) >= 7} sparklesCount={6}>
-                      <div className="text-3xl font-bold">
-                        <NumberTicker value={profile?.currentStreak || 0} /> <span className="text-xl">🔥</span>
-                      </div>
-                    </Sparkles>
-                    <p className="text-xs text-muted-foreground">consecutive days</p>
-                  </CardContent>
-                </Card>
-              </HoverCard>
-            </StaggerItem>
-
-            <StaggerItem>
-              <HoverCard>
-                <Card className="hover:border-primary/50 transition-colors">
-                  <CardHeader className="flex flex-row items-center justify-between pb-2">
-                    <CardTitle className="text-sm font-medium">Active Skills</CardTitle>
-                    <Target className="w-4 h-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-3xl font-bold">
-                      <NumberTicker value={skills.length} />
-                    </div>
-                    <p className="text-xs text-muted-foreground">skills in progress</p>
-                  </CardContent>
-                </Card>
-              </HoverCard>
-            </StaggerItem>
-
-            <StaggerItem>
-              <HoverCard>
-                <Card className="hover:border-primary/50 transition-colors">
-                  <CardHeader className="flex flex-row items-center justify-between pb-2">
-                    <CardTitle className="text-sm font-medium">Tasks Active</CardTitle>
-                    <CheckCircle className="w-4 h-4 text-green-500" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-3xl font-bold">
-                      <NumberTicker value={inProgressTasks} />
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      {completedToday > 0 ? `${completedToday} completed today` : 'none completed today'}
-                    </p>
-                  </CardContent>
-                </Card>
-              </HoverCard>
-            </StaggerItem>
-          </>
-        )}
-      </StaggerContainer>
-
-      {/* Quick Actions */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Quick Actions</CardTitle>
-          <CardDescription>Jump into your practice</CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-wrap gap-3">
-          <Button onClick={() => setShowNewSkillModal(true)}>
-            <Plus className="w-4 h-4 mr-2" />
-            New Skill
-          </Button>
-          <Button variant="outline" onClick={() => navigate('/tasks')}>
-            <Plus className="w-4 h-4 mr-2" />
-            New Task
-          </Button>
-          <Button variant="outline" onClick={() => navigate('/journal')}>
-            <Calendar className="w-4 h-4 mr-2" />
-            View Journal
-          </Button>
-          <Button variant="outline" onClick={() => navigate('/skills')}>
-            <TrendingUp className="w-4 h-4 mr-2" />
-            View Progress
-          </Button>
-        </CardContent>
-      </Card>
-
-      {/* Your Skills */}
-      {skillsLoading ? (
-        <div>
-          <h2 className="text-2xl font-bold mb-4">Your Skills</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <SkeletonCard />
-            <SkeletonCard />
-            <SkeletonCard />
+          <div className="w-px h-5 bg-gray-200 dark:bg-gray-700" />
+          <div className="flex items-center gap-2">
+            <Flame className="w-4 h-4 text-red-500" />
+            <span className="text-xs text-gray-500">Streak</span>
+            <span className="text-sm font-bold">{currentStreak}d</span>
+          </div>
+          <div className="w-px h-5 bg-gray-200 dark:bg-gray-700" />
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-gray-500">Focus</span>
+            <span className="text-sm font-bold">{settings.pomodoroDuration}m</span>
           </div>
         </div>
-      ) : skills.length > 0 ? (
-        <div>
-          <h2 className="text-2xl font-bold mb-4">Your Skills</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {skills.slice(0, 6).map(skill => (
-              <Card 
-                key={skill.id} 
-                className={cn(
-                  "cursor-pointer transition-all hover:shadow-md",
-                  activeSkill?.id === skill.id && "ring-2 ring-primary"
-                )}
-                onClick={() => handleSkillClick(skill.id)}
-              >
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <CardTitle className="text-lg">{skill.name}</CardTitle>
-                      <CardDescription className="mt-1">
-                        {formatHours(skill.currentMinutes)} / {skill.goalHours}h
-                      </CardDescription>
+        <div className="col-span-4 elevation-1 rounded-lg bg-white dark:bg-card px-4 py-2 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Trophy className="w-4 h-4 text-yellow-500" />
+            <span className="text-xs text-gray-500">Achievements</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <span className="text-sm font-bold">3/15</span>
+            <ChevronRight className="w-4 h-4 text-gray-400" />
+          </div>
+        </div>
+      </div>
+
+      {/* Row 2: Progress + Tasks */}
+      <div className="grid grid-cols-12 gap-4 h-[350px]">
+        {/* Today's Progress */}
+        <div className="col-span-7 elevation-1 rounded-xl bg-white dark:bg-card p-6 h-full flex flex-col">
+          <div className="flex items-center justify-between">
+            <h2 className="text-m font">Today's Progress</h2>
+            <span className="text-sm text-gray-500">{formatPercent(totalTodayMinutes, totalDailyGoal)}%</span>
+          </div>
+          <div className="flex-1 flex items-center justify-center">
+            <SemicircleProgress current={totalTodayMinutes} total={totalDailyGoal} size={250} />
+          </div>
+          <div className="flex items-center justify-between w-full">
+            <span className="text-sm text-gray-500">{formatPercent(totalTodayMinutes, totalDailyGoal)}% complete</span>
+            <button 
+              onClick={() => navigate('/focus')} 
+              className="w-12 h-12 rounded-full bg-primary text-white flex items-center justify-center hover:bg-primary/90 transition-colors shadow-lg"
+            >
+              <Play className="w-6 h-6 ml-0.5" />
+            </button>
+            <span className="text-sm text-gray-500">{formatHours(Math.max(0, totalDailyGoal - totalTodayMinutes))} left</span>
+          </div>
+        </div>
+
+        {/* Today's Tasks */}
+        <div className="col-span-5 elevation-1 rounded-xl bg-white dark:bg-card p-4 h-full">
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="text-m font">Today's Tasks</h2>
+            <button onClick={() => navigate('/tasks')} className="text-xs text-primary">View All →</button>
+          </div>
+          <div className="space-y-1.5 max-h-[150px] overflow-y-auto">
+            {todayTasks.length === 0 ? (
+              <div className="py-4 text-center">
+                <p className="text-xs text-gray-500 mb-2">No tasks for today</p>
+                <Button onClick={() => navigate('/tasks')} variant="ghost" size="sm">
+                  <Plus className="w-3 h-3 mr-1" />Add Task
+                </Button>
+              </div>
+            ) : (
+              todayTasks.map((task, index) => {
+                const skill = skills.find(s => s.id === task.skillId);
+                const estimatedMinutes = (task.estimatedPomodoros || 1) * settings.pomodoroDuration;
+                const scheduledHour = currentHour + index;
+                const scheduleLabel = scheduledHour >= 24 ? `${scheduledHour - 24}:00` : scheduledHour === 12 ? '12:00 PM' : scheduledHour < 12 ? `${scheduledHour}:00 AM` : `${scheduledHour - 12}:00 PM`;
+                
+                return (
+                  <div key={task.id} className={cn("flex items-center gap-2 p-2 rounded-lg group", index === 0 ? "bg-primary/5" : "hover:bg-gray-50 dark:hover:bg-gray-800/50")}>
+                    <span className="text-xs text-gray-400 w-16">{scheduleLabel}</span>
+                    <div className="w-1 h-6 rounded-full" style={{ backgroundColor: skill?.color || '#1A73E8' }} />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{task.title}</p>
+                      <p className="text-xs text-gray-500">{skill?.name} • {formatHours(estimatedMinutes)}</p>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <div 
-                        className="w-4 h-4 rounded-full" 
-                        style={{ backgroundColor: skill.color }}
-                      />
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="h-8 w-8 p-0"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleStartSession(skill.id);
-                        }}
-                      >
-                        <Play className="w-4 h-4" />
-                      </Button>
-                    </div>
+                    <span className={cn("text-xs px-1.5 py-0.5 rounded", task.priority === 'high' || task.priority === 'urgent' ? "bg-red-100 text-red-600" : "bg-gray-100 text-gray-500")}>{task.priority}</span>
+                    <button onClick={() => handleStartTask(task.id, task.skillId, skill?.name || '')} className="p-1 rounded-full bg-primary/10 text-primary opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Play className="w-3 h-3" />
+                    </button>
                   </div>
-                </CardHeader>
-                <CardContent>
-                  <AnimatedProgress 
-                    value={skill.currentMinutes} 
-                    max={skill.goalHours * 60}
-                    variant="gradient"
-                    size="md"
-                  />
-                  <p className="text-xs text-muted-foreground mt-2">
-                    {Math.floor((skill.currentMinutes / (skill.goalHours * 60)) * 100)}% complete
-                  </p>
-                </CardContent>
-              </Card>
+                );
+              })
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Row 3: Skills */}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <h2 className="text-m  flex items-center gap-2">
+            <Target className="w-4 h-4 text-primary" />Your Skills
+          </h2>
+          <Button onClick={() => setShowCreateModal(true)} variant="default" size="sm" className="h-7 text-xs">
+            <Plus className="w-3 h-3 mr-1" />Add Skill
+          </Button>
+        </div>
+        {isLoading ? (
+          <div className="grid grid-cols-4 gap-3">
+            {[1, 2, 3, 4].map(i => (
+              <div key={i} className="elevation-1 rounded-lg bg-white dark:bg-card p-3 animate-pulse">
+                <div className="h-3 bg-gray-200 rounded w-2/3 mb-2" />
+                <div className="h-4 bg-gray-200 rounded w-1/2 mb-2" />
+                <div className="h-1.5 bg-gray-200 rounded" />
+              </div>
             ))}
           </div>
-          {skills.length > 6 && (
-            <div className="mt-4 text-center">
-              <Button variant="outline" onClick={() => navigate('/skills')}>
-                View All Skills ({skills.length})
-              </Button>
-            </div>
-          )}
-        </div>
-      ) : (
-        <Card className="border-dashed">
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <Target className="w-12 h-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold mb-2">No Skills Yet</h3>
-            <p className="text-muted-foreground text-center max-w-sm mb-4">
-              Start your 10,000 hour journey by creating your first skill to track
-            </p>
-            <Button onClick={() => setShowNewSkillModal(true)}>
-              <Plus className="w-4 h-4 mr-2" />
-              Create Your First Skill
+        ) : skills.length === 0 ? (
+          <div className="elevation-1 rounded-lg bg-white dark:bg-card p-4 text-center">
+            <p className="text-xs text-gray-500 mb-2">No skills yet</p>
+            <Button onClick={() => setShowCreateModal(true)} variant="default" size="sm">
+              <Plus className="w-3 h-3 mr-1" />Add Skill
             </Button>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* New Skill Modal */}
-      <Modal
-        open={showNewSkillModal}
-        onClose={() => setShowNewSkillModal(false)}
-        title="Create New Skill"
-        size="md"
-      >
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Skill Name *</label>
-            <Input
-              placeholder="e.g., Piano, Programming, Drawing..."
-              value={newSkillName}
-              onChange={(e) => setNewSkillName(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleCreateSkill()}
-              autoFocus
-            />
           </div>
+        ) : (
+          <div className="grid grid-cols-4 gap-3">
+            {skills.slice(0, 4).map(skill => {
+              const todayMins = Math.min(skill.currentMinutes, skill.dailyGoalMinutes || 60);
+              const progress = formatPercent(todayMins, skill.dailyGoalMinutes || 60);
+              return (
+                <div key={skill.id} onClick={() => navigate('/skills')} className="elevation-1 rounded-lg bg-white dark:bg-card p-3 cursor-pointer hover:elevation-2 transition-all">
+                  <div className="flex items-center gap-2 mb-1">
+                    <div className="w-6 h-6 rounded flex items-center justify-center text-sm" style={{ backgroundColor: `${skill.color}20` }}>🎯</div>
+                    <span className="text-sm font-medium truncate flex-1">{skill.name}</span>
+                    <ChevronRight className="w-4 h-4 text-gray-400" />
+                  </div>
+                  <p className="text-xs text-gray-500 mb-1">Today: {formatHours(todayMins)} / {formatHours(skill.dailyGoalMinutes || 60)}</p>
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                      <div className="h-full rounded-full" style={{ width: `${Math.min(100, progress)}%`, backgroundColor: skill.color }} />
+                    </div>
+                    <span className="text-xs font-medium" style={{ color: skill.color }}>{progress}%</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
 
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Color</label>
-            <div className="flex flex-wrap gap-2">
-              {SKILL_COLORS.map((color) => (
-                <button
-                  key={color}
-                  className={cn(
-                    "w-8 h-8 rounded-full transition-transform hover:scale-110",
-                    newSkillColor === color && "ring-2 ring-offset-2 ring-primary"
-                  )}
-                  style={{ backgroundColor: color }}
-                  onClick={() => setNewSkillColor(color)}
-                />
-              ))}
+      {/* Row 4: Consistency Calendar */}
+      <div className="elevation-1 rounded-xl bg-white dark:bg-card p-4">
+        <div className="flex items-center justify-between mb-2">
+          <h2 className="text-sm font-semibold flex items-center gap-2">
+            <Flame className="w-4 h-4 text-green-500" />Consistency
+          </h2>
+          <div className="flex items-center gap-3 text-xs text-gray-500">
+            <span>{currentStreak} day streak</span>
+            <div className="flex items-center gap-1">
+              <span>Less</span>
+              <div className="flex gap-[2px]">
+                <div className="w-2 h-2 rounded-sm bg-gray-100 dark:bg-gray-800" />
+                <div className="w-2 h-2 rounded-sm bg-green-200" />
+                <div className="w-2 h-2 rounded-sm bg-green-300" />
+                <div className="w-2 h-2 rounded-sm bg-green-500" />
+                <div className="w-2 h-2 rounded-sm bg-green-600" />
+              </div>
+              <span>More</span>
             </div>
           </div>
         </div>
+        <ConsistencyCalendar activityData={activityData} />
+      </div>
 
-        <div className="flex gap-3 mt-6 justify-end">
-          <Button variant="outline" onClick={() => setShowNewSkillModal(false)}>
-            Cancel
-          </Button>
-          <Button onClick={handleCreateSkill} disabled={saving || !newSkillName.trim()}>
-            {saving ? 'Creating...' : 'Create Skill'}
-          </Button>
+      {/* Modal */}
+      <Modal open={showCreateModal} onClose={() => setShowCreateModal(false)} title="Add New Skill">
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium mb-1">Skill Name</label>
+            <Input value={newSkillName} onChange={(e) => setNewSkillName(e.target.value)} placeholder="e.g., Piano, Programming" autoFocus />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Goal (hours)</label>
+            <Input type="number" value={newSkillGoalHours} onChange={(e) => setNewSkillGoalHours(e.target.value)} placeholder="10000" min="1" />
+          </div>
+          <div className="flex gap-3">
+            <Button variant="ghost" onClick={() => setShowCreateModal(false)} className="flex-1">Cancel</Button>
+            <Button variant="default" onClick={handleCreateSkill} className="flex-1" disabled={!newSkillName.trim()}>Create</Button>
+          </div>
         </div>
       </Modal>
     </div>

@@ -190,10 +190,11 @@ export default function Journal() {
   };
 
   return (
+    <div className="h-full overflow-y-auto p-6">
     <div className="space-y-6 max-w-7xl mx-auto">
       <div>
-        <h1 className="text-4xl font-bold tracking-tight">Reflection Journal</h1>
-        <p className="text-muted-foreground mt-2">
+        <h1 className="text-3xl font-medium tracking-tight text-gray-900 dark:text-white">Reflection Journal</h1>
+        <p className="text-gray-500 mt-1">
           Document your learning journey and insights
         </p>
       </div>
@@ -201,22 +202,23 @@ export default function Journal() {
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
         {/* Calendar Sidebar */}
         <div className="lg:col-span-2">
-          <Card className="sticky top-4">
-            <CardHeader>
+          <div className="elevation-1 rounded-xl bg-white dark:bg-card sticky top-4">
+            <div className="p-5 border-b border-gray-100 dark:border-gray-800">
               <div className="flex items-center justify-between">
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => changeMonth(-1)}
+                  className="hover:bg-gray-100 dark:hover:bg-gray-800"
                 >
                   <ChevronLeft className="w-4 h-4" />
                 </Button>
-                <CardTitle className="text-lg">
+                <h3 className="text-lg font-medium text-gray-900 dark:text-white">
                   {currentMonth.toLocaleDateString('en-US', {
                     month: 'long',
                     year: 'numeric',
                   })}
-                </CardTitle>
+                </h3>
                 <Button
                   variant="ghost"
                   size="sm"
@@ -225,16 +227,17 @@ export default function Journal() {
                     currentMonth.getMonth() === new Date().getMonth() &&
                     currentMonth.getFullYear() === new Date().getFullYear()
                   }
+                  className="hover:bg-gray-100 dark:hover:bg-gray-800"
                 >
                   <ChevronRight className="w-4 h-4" />
                 </Button>
               </div>
-            </CardHeader>
-            <CardContent>
+            </div>
+            <div className="p-5">
               {/* Calendar Grid */}
               <div className="space-y-2">
                 {/* Weekday headers */}
-                <div className="grid grid-cols-7 gap-1 text-xs text-muted-foreground font-medium text-center mb-2">
+                <div className="grid grid-cols-7 gap-1 text-xs text-gray-500 font-medium text-center mb-2">
                   <div>Sun</div>
                   <div>Mon</div>
                   <div>Tue</div>
@@ -254,11 +257,11 @@ export default function Journal() {
                       className={cn(
                         "aspect-square p-1 rounded-lg text-sm font-medium transition-all relative",
                         !date && "invisible",
-                        date && !isFutureDate(date) && "hover:bg-accent cursor-pointer",
-                        date && isFutureDate(date) && "text-muted-foreground/30 cursor-not-allowed",
-                        date && isSelected(date) && "bg-primary text-primary-foreground hover:bg-primary/90",
-                        date && !isSelected(date) && isToday(date) && "border-2 border-primary",
-                        date && !isSelected(date) && !isToday(date) && hasReflection(date) && "bg-accent/50"
+                        date && !isFutureDate(date) && "hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer",
+                        date && isFutureDate(date) && "text-gray-300 dark:text-gray-600 cursor-not-allowed",
+                        date && isSelected(date) && "bg-primary text-white hover:bg-primary/90",
+                        date && !isSelected(date) && isToday(date) && "border-2 border-primary text-primary",
+                        date && !isSelected(date) && !isToday(date) && hasReflection(date) && "bg-primary/10"
                       )}
                     >
                       {date && (
@@ -275,74 +278,75 @@ export default function Journal() {
               </div>
 
               {/* Legend */}
-              <div className="mt-4 pt-4 border-t text-xs space-y-1.5">
+              <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-800 text-xs space-y-1.5">
                 <div className="flex items-center gap-2">
                   <div className="w-4 h-4 border-2 border-primary rounded" />
-                  <span className="text-muted-foreground">Today</span>
+                  <span className="text-gray-500">Today</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 bg-accent/50 rounded flex items-end justify-center pb-0.5">
+                  <div className="w-4 h-4 bg-primary/10 rounded flex items-end justify-center pb-0.5">
                     <div className="w-1 h-1 rounded-full bg-primary" />
                   </div>
-                  <span className="text-muted-foreground">Has reflection</span>
+                  <span className="text-gray-500">Has reflection</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="w-4 h-4 bg-primary rounded" />
-                  <span className="text-muted-foreground">Selected</span>
+                  <span className="text-gray-500">Selected</span>
                 </div>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </div>
 
         {/* Reflection Content */}
         <div className="lg:col-span-3 space-y-6">
           {/* Selected Date Display */}
-          <Card>
-            <CardContent className="p-4">
-              <div className="text-center">
-                <div className="text-2xl font-bold">
-                  {new Date(selectedDate + 'T00:00:00').toLocaleDateString('en-US', {
-                    weekday: 'long',
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                  })}
-                </div>
+          <div className="elevation-1 rounded-xl bg-white dark:bg-card p-5">
+            <div className="text-center">
+              <div className="text-xl font-medium text-gray-900 dark:text-white">
+                {new Date(selectedDate + 'T00:00:00').toLocaleDateString('en-US', {
+                  weekday: 'long',
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric',
+                })}
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
           {/* Mood Selector */}
           {isEditing && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">How are you feeling today?</CardTitle>
-              </CardHeader>
-              <CardContent>
+            <div className="elevation-1 rounded-xl bg-white dark:bg-card">
+              <div className="p-5 border-b border-gray-100 dark:border-gray-800">
+                <h3 className="text-base font-medium text-gray-900 dark:text-white">How are you feeling today?</h3>
+              </div>
+              <div className="p-5">
                 <div className="flex gap-2 flex-wrap">
                   {MOODS.map((m) => (
                     <Button
                       key={m}
                       variant={mood === m ? 'default' : 'outline'}
                       onClick={() => setMood(m)}
-                      className="text-sm"
+                      className={cn(
+                        "text-sm",
+                        mood === m && "elevation-1"
+                      )}
                     >
                       {m}
                     </Button>
                   ))}
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           )}
 
           {/* Skills Linking */}
           {isEditing && skills.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Link to Skills</CardTitle>
-              </CardHeader>
-              <CardContent>
+            <div className="elevation-1 rounded-xl bg-white dark:bg-card">
+              <div className="p-5 border-b border-gray-100 dark:border-gray-800">
+                <h3 className="text-base font-medium text-gray-900 dark:text-white">Link to Skills</h3>
+              </div>
+              <div className="p-5">
                 <div className="flex gap-2 flex-wrap">
                   {skills.map((skill) => (
                     <Button
@@ -360,29 +364,29 @@ export default function Journal() {
                     </Button>
                   ))}
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           )}
 
           {/* Reflection Content */}
-          <Card>
-            <CardHeader>
+          <div className="elevation-1 rounded-xl bg-white dark:bg-card">
+            <div className="p-5 border-b border-gray-100 dark:border-gray-800">
               <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center gap-2">
-                  <BookOpen className="w-5 h-5" />
+                <h3 className="flex items-center gap-2 text-base font-medium text-gray-900 dark:text-white">
+                  <BookOpen className="w-5 h-5 text-primary" />
                   Daily Reflection
-                </CardTitle>
+                </h3>
                 {!isEditing && reflection && (
-                  <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
+                  <Button variant="outline" size="sm" onClick={() => setIsEditing(true)} className="elevation-1 hover:elevation-2">
                     <Edit className="w-4 h-4 mr-2" />
                     Edit
                   </Button>
                 )}
               </div>
-            </CardHeader>
-            <CardContent>
+            </div>
+            <div className="p-5">
               {loading ? (
-                <div className="text-center py-8 text-muted-foreground">Loading...</div>
+                <div className="text-center py-8 text-gray-500">Loading...</div>
               ) : isEditing ? (
                 <div className="space-y-4">
                   <textarea
@@ -396,10 +400,10 @@ You can use Markdown:
 - # Headings
 - - bullet points
 - [links](url)"
-                    className="w-full min-h-[400px] p-4 border rounded-md font-mono text-sm resize-none focus:outline-none focus:ring-2 focus:ring-black"
+                    className="w-full min-h-[400px] p-4 border border-gray-200 dark:border-gray-700 rounded-xl font-mono text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary bg-gray-50 dark:bg-gray-800"
                   />
                   <div className="flex gap-2">
-                    <Button onClick={saveReflection} disabled={!content.trim()}>
+                    <Button onClick={saveReflection} disabled={!content.trim()} className="elevation-1">
                       <Save className="w-4 h-4 mr-2" />
                       Save Reflection
                     </Button>
@@ -413,8 +417,8 @@ You can use Markdown:
               ) : reflection ? (
                 <div>
                   {mood && (
-                    <div className="mb-4 text-sm text-muted-foreground">
-                      Mood: <span className="font-medium">{mood}</span>
+                    <div className="mb-4 text-sm text-gray-500">
+                      Mood: <span className="font-medium text-gray-700 dark:text-gray-300">{mood}</span>
                     </div>
                   )}
                   {linkedSkills.length > 0 && (
@@ -424,7 +428,7 @@ You can use Markdown:
                         return skill ? (
                           <span
                             key={skillId}
-                            className="text-xs px-2 py-1 rounded-full text-white"
+                            className="text-xs px-2.5 py-1 rounded-full text-white"
                             style={{ backgroundColor: skill.color }}
                           >
                             {skill.name}
@@ -433,24 +437,28 @@ You can use Markdown:
                       })}
                     </div>
                   )}
-                  <div className="prose prose-sm max-w-none">
+                  <div className="prose prose-sm max-w-none dark:prose-invert">
                     <ReactMarkdown>{content}</ReactMarkdown>
                   </div>
                 </div>
               ) : (
-                <div className="text-center py-16 text-muted-foreground">
+                <div className="text-center py-16 text-gray-500">
+                  <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
+                    <BookOpen className="w-8 h-8 text-primary" />
+                  </div>
                   No reflection for this date yet.
                   <div className="mt-4">
-                    <Button onClick={() => setIsEditing(true)}>
+                    <Button onClick={() => setIsEditing(true)} className="elevation-1">
                       Create Reflection
                     </Button>
                   </div>
                 </div>
               )}
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </div>
       </div>
+    </div>
     </div>
   );
 }

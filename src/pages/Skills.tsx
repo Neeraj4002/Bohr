@@ -11,18 +11,18 @@ import { Skill } from '@/types';
 import { toast } from 'sonner';
 import { formatHours } from '@/lib/utils';
 
-// Predefined colors for skills
+// Google-style color palette for skills
 const SKILL_COLORS = [
-  '#6366f1', // indigo
-  '#8b5cf6', // violet
-  '#ec4899', // pink
-  '#ef4444', // red
-  '#f97316', // orange
-  '#eab308', // yellow
-  '#22c55e', // green
-  '#14b8a6', // teal
-  '#06b6d4', // cyan
-  '#3b82f6', // blue
+  '#1A73E8', // Google Blue
+  '#34A853', // Google Green
+  '#EA4335', // Google Red
+  '#FBBC04', // Google Yellow
+  '#5F6368', // Google Gray
+  '#8AB4F8', // Light Blue
+  '#81C995', // Light Green
+  '#F28B82', // Light Red
+  '#FDD663', // Light Yellow
+  '#9AA0A6', // Light Gray
 ];
 
 interface SkillFormData {
@@ -207,15 +207,16 @@ export default function Skills() {
   );
 
   return (
+    <div className="h-full overflow-y-auto p-8 bg-background">
     <div className="space-y-8 max-w-7xl mx-auto">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-4xl font-bold tracking-tight">Skills</h1>
-          <p className="text-muted-foreground mt-2">
+          <h1 className="text-3xl font-medium tracking-tight font-display">Skills</h1>
+          <p className="text-muted-foreground mt-1">
             Manage your 10,000 hour journey to mastery
           </p>
         </div>
-        <Button onClick={openCreateModal} className="gap-2">
+        <Button onClick={openCreateModal} className="gap-2 rounded-full px-6">
           <Plus className="w-4 h-4" />
           New Skill
         </Button>
@@ -225,34 +226,31 @@ export default function Skills() {
       {skills.length > 0 && (
         <StaggerContainer className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <StaggerItem>
-            <HoverCard>
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="flex items-center gap-4">
-                    <div className="p-3 bg-primary/10 rounded-lg">
-                      <Target className="w-6 h-6 text-primary" />
-                    </div>
-                    <div>
-                      <p className="text-2xl font-bold">
-                        <NumberTicker value={skills.length} />
-                      </p>
-                      <p className="text-sm text-muted-foreground">Active Skills</p>
-                    </div>
+            <Card className="elevation-1 hover:elevation-2 transition-all bg-white dark:bg-card">
+              <CardContent className="pt-5">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 bg-primary/10 rounded-full">
+                    <Target className="w-6 h-6 text-primary" />
                   </div>
-                </CardContent>
-              </Card>
-            </HoverCard>
+                  <div>
+                    <p className="text-3xl font-bold font-display">
+                      <NumberTicker value={skills.length} />
+                    </p>
+                    <p className="text-sm text-muted-foreground">Active Skills</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </StaggerItem>
           <StaggerItem>
-            <HoverCard>
-              <Card>
-                <CardContent className="pt-6">
+            <Card className="elevation-1 hover:elevation-2 transition-all bg-white dark:bg-card">
+              <CardContent className="pt-5">
                   <div className="flex items-center gap-4">
-                    <div className="p-3 bg-green-500/10 rounded-lg">
-                      <Clock className="w-6 h-6 text-green-500" />
+                    <div className="p-3 bg-success/10 rounded-full">
+                      <Clock className="w-6 h-6 text-success" />
                     </div>
                     <div>
-                      <p className="text-2xl font-bold">
+                      <p className="text-3xl font-bold font-display">
                         <NumberTicker value={Math.floor(skills.reduce((sum, s) => sum + s.currentMinutes, 0) / 60)} />
                         <span className="text-lg text-muted-foreground">h</span>
                       </p>
@@ -260,19 +258,17 @@ export default function Skills() {
                     </div>
                   </div>
                 </CardContent>
-              </Card>
-            </HoverCard>
+            </Card>
           </StaggerItem>
           <StaggerItem>
-            <HoverCard>
-              <Card>
-                <CardContent className="pt-6">
+            <Card className="elevation-1 hover:elevation-2 transition-all bg-white dark:bg-card">
+              <CardContent className="pt-5">
                   <div className="flex items-center gap-4">
-                    <div className="p-3 bg-blue-500/10 rounded-lg">
-                      <TrendingUp className="w-6 h-6 text-blue-500" />
+                    <div className="p-3 bg-primary/10 rounded-full">
+                      <TrendingUp className="w-6 h-6 text-primary" />
                     </div>
                     <div>
-                      <p className="text-2xl font-bold">
+                      <p className="text-3xl font-bold font-display">
                         <NumberTicker value={Math.floor(skills.reduce((sum, s) => sum + (s.currentMinutes / (s.goalHours * 60)) * 100, 0) / skills.length)} />
                         <span className="text-lg text-muted-foreground">%</span>
                       </p>
@@ -280,8 +276,7 @@ export default function Skills() {
                     </div>
                   </div>
                 </CardContent>
-              </Card>
-            </HoverCard>
+            </Card>
           </StaggerItem>
         </StaggerContainer>
       )}
@@ -304,12 +299,12 @@ export default function Skills() {
           return (
             <Card 
               key={skill.id} 
-              className={`group transition-all hover:shadow-lg cursor-pointer ${
-                skill.isActive ? 'ring-2 ring-primary ring-offset-2' : ''
+              className={`group transition-all cursor-pointer elevation-1 hover:elevation-2 bg-white dark:bg-card ${
+                skill.isActive ? 'ring-2 ring-primary bg-primary/5' : ''
               }`}
               onClick={() => handleSetActive(skill.id)}
             >
-              <CardHeader className="pb-3">
+              <CardHeader className="pb-2">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
@@ -317,10 +312,10 @@ export default function Skills() {
                         className="w-4 h-4 rounded-full shrink-0" 
                         style={{ backgroundColor: skill.color }}
                       />
-                      <CardTitle className="text-xl truncate">{skill.name}</CardTitle>
+                      <CardTitle className="text-lg truncate font-medium">{skill.name}</CardTitle>
                     </div>
                     {skill.description && (
-                      <CardDescription className="mt-2 line-clamp-2">
+                      <CardDescription className="mt-1 line-clamp-1 text-xs">
                         {skill.description}
                       </CardDescription>
                     )}
@@ -332,39 +327,39 @@ export default function Skills() {
                     <Button 
                       variant="ghost" 
                       size="icon" 
-                      className="h-8 w-8"
+                      className="h-7 w-7 rounded-full"
                       onClick={() => openEditModal(skill)}
                     >
-                      <Pencil className="w-4 h-4" />
+                      <Pencil className="w-3.5 h-3.5" />
                     </Button>
                     <Button 
                       variant="ghost" 
                       size="icon" 
-                      className="h-8 w-8 text-destructive hover:text-destructive"
+                      className="h-7 w-7 text-destructive hover:text-destructive rounded-full"
                       onClick={() => openDeleteDialog(skill)}
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Trash2 className="w-3.5 h-3.5" />
                     </Button>
                   </div>
                 </div>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-3 pt-0">
                 <div>
-                  <div className="flex justify-between text-sm mb-2">
-                    <span className="font-semibold text-lg">
+                  <div className="flex justify-between text-sm mb-1.5">
+                    <span className="font-semibold text-base">
                       {formatHours(skill.currentMinutes)}h
                     </span>
-                    <span className="text-muted-foreground">
+                    <span className="text-muted-foreground text-sm">
                       / {skill.goalHours.toLocaleString()}h
                     </span>
                   </div>
                   <AnimatedProgress 
                     value={skill.currentMinutes} 
                     max={skill.goalHours * 60}
-                    variant="glow"
-                    size="lg"
+                    variant={skill.isActive ? 'success' : 'glow'}
+                    size="md"
                   />
-                  <div className="flex justify-between mt-2">
+                  <div className="flex justify-between mt-1.5">
                     <p className="text-xs text-muted-foreground">
                       {progressPercent.toFixed(1)}% complete
                     </p>
@@ -376,8 +371,8 @@ export default function Skills() {
                 
                 {skill.isActive && (
                   <div className="pt-2 border-t flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                    <span className="text-xs font-medium text-green-600 dark:text-green-400">
+                    <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                    <span className="text-xs font-medium text-primary">
                       Currently Active
                     </span>
                   </div>
@@ -456,6 +451,7 @@ export default function Skills() {
         variant="destructive"
         loading={saving}
       />
+    </div>
     </div>
   );
 }

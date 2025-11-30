@@ -130,10 +130,11 @@ export const useUserStore = create<UserState>((set, get) => ({
 
         set({ profile, settings, loading: false });
       } else {
-        // Create default settings if none exist
+        // This should not happen as migration inserts default settings
+        // But just in case, use INSERT OR REPLACE
         await db.execute(
-          `INSERT INTO user_settings (name, pomodoro_duration, short_break_duration, long_break_duration, daily_goal_minutes, weekly_goal_minutes, sound_enabled, notifications_enabled)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+          `INSERT OR REPLACE INTO user_settings (id, name, pomodoro_duration, short_break_duration, long_break_duration, daily_goal_minutes, weekly_goal_minutes, sound_enabled, notifications_enabled)
+           VALUES (1, $1, $2, $3, $4, $5, $6, $7, $8)`,
           ['User', 25, 5, 15, 240, 420, 1, 1]
         );
         await get().fetchProfile();
@@ -183,7 +184,7 @@ export const useUserStore = create<UserState>((set, get) => ({
       }
       
       if (updateParts.length > 0) {
-        updateParts.push("updated_at = datetime('now')");
+        updateParts.push("updated_at = NOW()");
         await db.execute(
           `UPDATE user_settings SET ${updateParts.join(', ')}`,
           values
@@ -235,7 +236,7 @@ export const useUserStore = create<UserState>((set, get) => ({
       }
 
       if (updateParts.length > 0) {
-        updateParts.push("updated_at = datetime('now')");
+        updateParts.push("updated_at = NOW()");
         await db.execute(
           `UPDATE user_settings SET ${updateParts.join(', ')}`,
           values

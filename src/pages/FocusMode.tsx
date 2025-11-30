@@ -171,12 +171,12 @@ export default function FocusMode() {
   };
 
   return (
-    <div className="h-screen bg-black text-white flex flex-col items-center justify-center p-8 relative">
+    <div className="h-screen bg-[#202124] text-white flex flex-col items-center justify-center p-8 relative">
       {/* Exit Button */}
       <Button
         variant="ghost"
         size="icon"
-        className="absolute top-4 right-4 text-white hover:bg-white/10"
+        className="absolute top-4 right-4 text-white/60 hover:text-white hover:bg-white/10"
         onClick={() => navigate(-1)}
       >
         <X className="w-6 h-6" />
@@ -185,9 +185,9 @@ export default function FocusMode() {
       {/* Active Skill Display */}
       {activeSkill && (
         <div className="absolute top-4 left-4 text-left">
-          <div className="text-sm text-white/60">Active Skill</div>
-          <div className="text-xl font-bold">{activeSkill.name}</div>
-          <div className="text-sm text-white/60">
+          <div className="text-xs text-white/40 uppercase tracking-wider">Active Skill</div>
+          <div className="text-xl font-medium text-[#8AB4F8]">{activeSkill.name}</div>
+          <div className="text-sm text-white/50">
             {Math.floor(activeSkill.currentMinutes / 60)} hours completed
           </div>
         </div>
@@ -201,8 +201,8 @@ export default function FocusMode() {
               variant={sessionType === 'pomodoro' ? 'default' : 'outline'}
               onClick={() => setSessionType('pomodoro')}
               className={cn(
-                'gap-2',
-                sessionType === 'pomodoro' ? 'bg-white text-black' : 'bg-white/10 text-white border-white/20'
+                'gap-2 rounded-full px-6',
+                sessionType === 'pomodoro' ? 'bg-primary text-primary-foreground' : 'bg-white/5 text-white/70 border-white/10 hover:bg-white/10 hover:text-white'
               )}
             >
               <Target className="w-4 h-4" />
@@ -212,8 +212,8 @@ export default function FocusMode() {
               variant={sessionType === 'short-break' ? 'default' : 'outline'}
               onClick={() => setSessionType('short-break')}
               className={cn(
-                'gap-2',
-                sessionType === 'short-break' ? 'bg-white text-black' : 'bg-white/10 text-white border-white/20'
+                'gap-2 rounded-full px-6',
+                sessionType === 'short-break' ? 'bg-primary text-primary-foreground' : 'bg-white/5 text-white/70 border-white/10 hover:bg-white/10 hover:text-white'
               )}
             >
               <Coffee className="w-4 h-4" />
@@ -223,8 +223,8 @@ export default function FocusMode() {
               variant={sessionType === 'long-break' ? 'default' : 'outline'}
               onClick={() => setSessionType('long-break')}
               className={cn(
-                'gap-2',
-                sessionType === 'long-break' ? 'bg-white text-black' : 'bg-white/10 text-white border-white/20'
+                'gap-2 rounded-full px-6',
+                sessionType === 'long-break' ? 'bg-primary text-primary-foreground' : 'bg-white/5 text-white/70 border-white/10 hover:bg-white/10 hover:text-white'
               )}
             >
               <Coffee className="w-4 h-4" />
@@ -233,46 +233,44 @@ export default function FocusMode() {
           </div>
         )}
 
-        {/* Task Selector - Moved ABOVE timer for better UX */}
+        {/* Task Selector - Compact horizontal pill style */}
         {status === 'idle' && sessionType === 'pomodoro' && tasks.length > 0 && (
-          <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-6 border border-white/10">
-            <label className="text-lg text-white/80 block text-center mb-4 font-medium">
-              What are you working on?
+          <div className="text-center">
+            <label className="text-sm text-white/50 uppercase tracking-wider mb-3 block">
+              Working on
             </label>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-48 overflow-y-auto">
+            <div className="flex flex-wrap justify-center gap-2 max-w-2xl mx-auto">
               <button
                 onClick={() => setSelectedTaskId('')}
                 className={cn(
-                  "p-4 rounded-lg border-2 transition-all text-left",
+                  "px-4 py-2 rounded-full text-sm transition-all",
                   selectedTaskId === ''
-                    ? "bg-white text-black border-white"
-                    : "bg-white/10 text-white border-white/20 hover:bg-white/20"
+                    ? "bg-primary text-white"
+                    : "bg-white/[0.08] text-white/70 hover:bg-white/[0.12]"
                 )}
               >
-                <div className="font-medium">Free Practice</div>
-                <div className="text-sm opacity-70">No specific task</div>
+                Free Practice
               </button>
               {tasks
                 .filter(t => t.status !== 'done')
+                .slice(0, 5) // Limit to 5 tasks
                 .map((task) => (
                   <button
                     key={task.id}
                     onClick={() => setSelectedTaskId(task.id)}
                     className={cn(
-                      "p-4 rounded-lg border-2 transition-all text-left",
+                      "px-4 py-2 rounded-full text-sm transition-all truncate max-w-[200px]",
                       selectedTaskId === task.id
-                        ? "bg-white text-black border-white"
-                        : "bg-white/10 text-white border-white/20 hover:bg-white/20"
+                        ? "bg-primary text-white"
+                        : "bg-white/[0.08] text-white/70 hover:bg-white/[0.12]"
                     )}
                   >
-                    <div className="font-medium truncate">{task.title}</div>
-                    <div className="text-sm opacity-70 capitalize">{task.status.replace('-', ' ')}</div>
+                    {task.title}
                   </button>
                 ))}
             </div>
           </div>
         )}
-
         {/* Current Task Display - During Timer */}
         {(status === 'running' || status === 'paused') && currentTask && (
           <div className="text-center">
@@ -292,25 +290,25 @@ export default function FocusMode() {
             <div className="flex justify-center">
               <FlipClockCountdown
                 to={new Date().getTime() + remainingSeconds * 1000}
-                labels={remainingSeconds >= 3600 ? ['HOURS', 'MINUTES', 'SECONDS'] : ['MINUTES', 'SECONDS']}
+                labels={['DAYS', 'HOURS', 'MINUTES', 'SECONDS']}
                 showLabels={true}
                 showSeparators={true}
                 labelStyle={{
                   fontSize: 12,
-                  fontWeight: 600,
+                  fontWeight: 500,
                   textTransform: 'uppercase',
-                  color: 'rgba(255, 255, 255, 0.5)',
-                  letterSpacing: '0.1em',
+                  color: 'rgba(255, 255, 255, 0.4)',
+                  letterSpacing: '0.15em',
                 }}
                 digitBlockStyle={{
-                  width: 60,
-                  height: 90,
-                  fontSize: 48,
-                  backgroundColor: '#ffffff',
-                  color: '#000000',
+                  width: 80,
+                  height: 120,
+                  fontSize: 64,
+                  backgroundColor: '#1A73E8',
+                  color: '#FFFFFF',
                 }}
-                dividerStyle={{ color: 'white', height: 1 }}
-                separatorStyle={{ color: 'white', size: '8px' }}
+                dividerStyle={{ color: '#1A73E8', height: 1 }}
+                separatorStyle={{ color: '#8AB4F8', size: '10px' }}
                 duration={0.5}
                 renderMap={[false, remainingSeconds >= 3600, true, true]}
               />
@@ -319,49 +317,49 @@ export default function FocusMode() {
           
           {/* Static display when not running */}
           {status !== 'running' && (
-            <div className="flex items-center justify-center gap-3">
+            <div className="flex items-center justify-center gap-4">
               {remainingSeconds >= 3600 && (
                 <>
                   <div className="flex flex-col items-center">
-                    <div className="bg-white text-black rounded-lg px-6 py-4 min-w-[100px] text-center shadow-xl">
-                      <div className="text-7xl font-bold font-mono tabular-nums">
+                    <div className="bg-[#1A73E8] text-white rounded-xl px-8 py-6 min-w-[120px] text-center timer-glow">
+                      <div className="text-8xl font-bold font-display tabular-nums">
                         {String(Math.floor(remainingSeconds / 3600)).padStart(2, '0')}
                       </div>
                     </div>
-                    <div className="text-xs text-white/50 mt-3 uppercase font-semibold tracking-wider">Hours</div>
+                    <div className="text-xs text-white/40 mt-4 uppercase font-medium tracking-widest">Hours</div>
                   </div>
                   
-                  <div className="text-6xl font-bold text-white pb-8">:</div>
+                  <div className="text-7xl font-bold text-[#8AB4F8] pb-10">:</div>
                 </>
               )}
               
               <div className="flex flex-col items-center">
-                <div className="bg-white text-black rounded-lg px-6 py-4 min-w-[100px] text-center shadow-xl">
-                  <div className="text-7xl font-bold font-mono tabular-nums">
+                <div className="bg-[#1A73E8] text-white rounded-xl px-8 py-6 min-w-[120px] text-center timer-glow">
+                  <div className="text-8xl font-bold font-display tabular-nums">
                     {String(Math.floor((remainingSeconds % 3600) / 60)).padStart(2, '0')}
                   </div>
                 </div>
-                <div className="text-xs text-white/50 mt-3 uppercase font-semibold tracking-wider">Minutes</div>
+                <div className="text-xs text-white/40 mt-4 uppercase font-medium tracking-widest">Minutes</div>
               </div>
               
-              <div className="text-6xl font-bold text-white pb-8">:</div>
+              <div className="text-7xl font-bold text-[#8AB4F8] pb-10">:</div>
               
               <div className="flex flex-col items-center">
-                <div className="bg-white text-black rounded-lg px-6 py-4 min-w-[100px] text-center shadow-xl">
-                  <div className="text-7xl font-bold font-mono tabular-nums">
+                <div className="bg-[#1A73E8] text-white rounded-xl px-8 py-6 min-w-[120px] text-center timer-glow">
+                  <div className="text-8xl font-bold font-display tabular-nums">
                     {String(remainingSeconds % 60).padStart(2, '0')}
                   </div>
                 </div>
-                <div className="text-xs text-white/50 mt-3 uppercase font-semibold tracking-wider">Seconds</div>
+                <div className="text-xs text-white/40 mt-4 uppercase font-medium tracking-widest">Seconds</div>
               </div>
             </div>
           )}
 
           {/* Progress Bar */}
           <div className="max-w-md mx-auto">
-            <div className="w-full bg-white/10 rounded-full h-2.5">
+            <div className="w-full bg-white/[0.08] rounded-full h-2">
               <div
-                className="h-2.5 rounded-full bg-white transition-all duration-1000 shadow-lg shadow-white/20"
+                className="h-2 rounded-full bg-[#1A73E8] transition-all duration-1000"
                 style={{ width: `${progress}%` }}
               />
             </div>
@@ -376,17 +374,16 @@ export default function FocusMode() {
           </div>
         </div>
 
-        {/* Controls */}
+        {/* Controls - Circular FAB style for Start */}
         <div className="flex items-center justify-center gap-6">
           {status === 'idle' && (
             <Button
               onClick={handleStart}
               size="lg"
-              className="bg-white text-black hover:bg-white/90 px-12 py-6 text-xl gap-3"
+              className="bg-[#1A73E8] text-white hover:bg-[#1557B0] w-20 h-20 rounded-full text-xl elevation-3 hover:elevation-4"
               disabled={!activeSkill}
             >
-              <Play className="w-6 h-6" />
-              Start
+              <Play className="w-8 h-8" />
             </Button>
           )}
 
@@ -396,7 +393,7 @@ export default function FocusMode() {
                 onClick={handlePause}
                 size="lg"
                 variant="outline"
-                className="bg-white/10 text-white border-white/20 hover:bg-white/20 px-8 py-6 text-lg gap-3"
+                className="bg-white/[0.05] text-white border-white/10 hover:bg-white/10 px-8 py-6 text-lg gap-3 rounded-full"
               >
                 <Pause className="w-5 h-5" />
                 Pause
@@ -405,7 +402,7 @@ export default function FocusMode() {
                 onClick={handleStop}
                 size="lg"
                 variant="outline"
-                className="bg-white/10 text-white border-white/20 hover:bg-red-500/20 px-8 py-6 text-lg gap-3"
+                className="bg-white/[0.05] text-white border-white/10 hover:bg-[#EA4335]/20 hover:border-[#EA4335]/30 px-8 py-6 text-lg gap-3 rounded-full"
               >
                 <Square className="w-5 h-5" />
                 Stop
@@ -418,16 +415,15 @@ export default function FocusMode() {
               <Button
                 onClick={handleResume}
                 size="lg"
-                className="bg-white text-black hover:bg-white/90 px-12 py-6 text-xl gap-3"
+                className="bg-[#1A73E8] text-white hover:bg-[#1557B0] w-20 h-20 rounded-full text-xl elevation-3 hover:elevation-4"
               >
-                <Play className="w-6 h-6" />
-                Resume
+                <Play className="w-8 h-8" />
               </Button>
               <Button
                 onClick={handleStop}
                 size="lg"
                 variant="outline"
-                className="bg-white/10 text-white border-white/20 hover:bg-red-500/20 px-8 py-6 text-lg gap-3"
+                className="bg-white/[0.05] text-white border-white/10 hover:bg-[#EA4335]/20 hover:border-[#EA4335]/30 px-8 py-6 text-lg gap-3 rounded-full"
               >
                 <Square className="w-5 h-5" />
                 Stop
@@ -439,7 +435,7 @@ export default function FocusMode() {
             <Button
               onClick={handleStart}
               size="lg"
-              className="bg-white text-black hover:bg-white/90 px-12 py-6 text-xl gap-3"
+              className="bg-[#1A73E8] text-white hover:bg-[#1557B0] px-12 py-6 text-xl gap-3 rounded-full elevation-3 hover:elevation-4"
             >
               <Play className="w-6 h-6" />
               Start Another
@@ -455,16 +451,16 @@ export default function FocusMode() {
       </div>
 
       {/* Spotify Controls */}
-      <div className="absolute bottom-4 right-4 left-4">
+      <div className="absolute bottom-6 right-6 left-6">
         {!spotifyConnected ? (
           <div className="flex justify-center">
             <Button
               variant="outline"
               onClick={handleSpotifyConnect}
-              className="bg-white/10 text-white border-white/20 hover:bg-white/20 gap-2"
+              className="bg-[#1DB954]/10 text-[#1DB954] border-[#1DB954]/30 hover:bg-[#1DB954]/20 hover:border-[#1DB954]/50 gap-2 px-6 py-3"
             >
-              <Music className="w-4 h-4" />
-              Connect Spotify
+              <Music className="w-5 h-5" />
+              Connect Spotify for Focus Music
             </Button>
           </div>
         ) : (
@@ -475,7 +471,7 @@ export default function FocusMode() {
                 variant="outline"
                 size="sm"
                 onClick={() => setShowSpotify(!showSpotify)}
-                className="bg-white/10 text-white border-white/20 hover:bg-white/20 gap-2"
+                className="bg-[#1DB954]/10 text-[#1DB954] border-[#1DB954]/30 hover:bg-[#1DB954]/20 gap-2"
               >
                 <Music className="w-4 h-4" />
                 {showSpotify ? 'Hide Music' : 'Show Music'}
@@ -484,7 +480,7 @@ export default function FocusMode() {
 
             {/* Spotify Panel */}
             {showSpotify && (
-              <div className="bg-white/10 backdrop-blur-lg rounded-lg p-4 max-w-md mx-auto border border-white/20">
+              <div className="bg-white/[0.05] backdrop-blur-lg rounded-xl p-4 max-w-md mx-auto border border-white/10">
                 {/* Now Playing */}
                 {playback?.track && (
                   <div className="mb-4 text-center">
@@ -502,7 +498,7 @@ export default function FocusMode() {
                     variant="ghost"
                     size="sm"
                     onClick={handlePrevious}
-                    className="text-white hover:bg-white/20"
+                    className="text-white/80 hover:text-white hover:bg-white/10"
                   >
                     <SkipBack className="w-5 h-5" />
                   </Button>
@@ -510,7 +506,7 @@ export default function FocusMode() {
                     variant="ghost"
                     size="sm"
                     onClick={handlePlayPause}
-                    className="text-white hover:bg-white/20"
+                    className="text-[#1DB954] hover:bg-[#1DB954]/20 w-12 h-12 rounded-full"
                   >
                     {playback?.is_playing ? (
                       <Pause className="w-6 h-6" />
@@ -522,7 +518,7 @@ export default function FocusMode() {
                     variant="ghost"
                     size="sm"
                     onClick={handleNext}
-                    className="text-white hover:bg-white/20"
+                    className="text-white/80 hover:text-white hover:bg-white/10"
                   >
                     <SkipForward className="w-5 h-5" />
                   </Button>
@@ -537,7 +533,7 @@ export default function FocusMode() {
                     max="100"
                     value={volume}
                     onChange={(e) => handleVolumeChange(parseInt(e.target.value))}
-                    className="flex-1"
+                    className="flex-1 accent-[#1DB954]"
                   />
                   <span className="text-xs text-white/60 w-8">{volume}%</span>
                 </div>

@@ -143,13 +143,13 @@ export const useTimerStore = create<TimerState>()(
           if (elapsedMinutes > 0 && state.type === 'pomodoro' && state.currentSkillId) {
             try {
               await db.execute(
-                'UPDATE timer_sessions SET end_time = datetime("now"), duration = $1 WHERE id = $2',
+                'UPDATE timer_sessions SET end_time = NOW(), duration = $1 WHERE id = $2',
                 [elapsedMinutes, state.sessionId]
               );
               
               // Add partial time to skill
               await db.execute(
-                'UPDATE skills SET current_minutes = current_minutes + $1, updated_at = datetime("now") WHERE id = $2',
+                'UPDATE skills SET current_minutes = current_minutes + $1, updated_at = NOW() WHERE id = $2',
                 [elapsedMinutes, state.currentSkillId]
               );
             } catch (error) {
@@ -179,14 +179,14 @@ export const useTimerStore = create<TimerState>()(
         try {
           // Update timer session
           await db.execute(
-            'UPDATE timer_sessions SET end_time = datetime("now"), duration = $1, completed = 1 WHERE id = $2',
+            'UPDATE timer_sessions SET end_time = NOW(), duration = $1, completed = 1 WHERE id = $2',
             [actualDuration, state.sessionId]
           );
 
           // If this was a Pomodoro session, add the minutes to the skill
           if (state.type === 'pomodoro' && state.currentSkillId && actualDuration > 0) {
             await db.execute(
-              'UPDATE skills SET current_minutes = current_minutes + $1, updated_at = datetime("now") WHERE id = $2',
+              'UPDATE skills SET current_minutes = current_minutes + $1, updated_at = NOW() WHERE id = $2',
               [actualDuration, state.currentSkillId]
             );
             
@@ -446,7 +446,7 @@ export const useTimerStore = create<TimerState>()(
               
               if (existing.length > 0 && !existing[0].unlocked_at) {
                 await db.execute(
-                  'UPDATE achievements SET unlocked_at = datetime("now") WHERE type = $1',
+                  'UPDATE achievements SET unlocked_at = NOW() WHERE type = $1',
                   [ach.type]
                 );
                 
@@ -470,13 +470,13 @@ export const useTimerStore = create<TimerState>()(
           const hour = new Date().getHours();
           if (hour >= 0 && hour < 5) {
             await db.execute(
-              `UPDATE achievements SET progress = 1, unlocked_at = COALESCE(unlocked_at, datetime("now")) 
+              `UPDATE achievements SET progress = 1, unlocked_at = COALESCE(unlocked_at, NOW()) 
                WHERE type = 'night_owl'`
             );
           }
           if (hour >= 4 && hour < 6) {
             await db.execute(
-              `UPDATE achievements SET progress = 1, unlocked_at = COALESCE(unlocked_at, datetime("now")) 
+              `UPDATE achievements SET progress = 1, unlocked_at = COALESCE(unlocked_at, NOW()) 
                WHERE type = 'early_bird'`
             );
           }

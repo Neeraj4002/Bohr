@@ -3,6 +3,7 @@ export interface Skill {
   name: string;
   description?: string;
   goalHours: number;
+  dailyGoalMinutes: number; // Daily practice target in minutes
   currentHours: number;
   currentMinutes: number; // For precise tracking
   color: string;
@@ -15,6 +16,7 @@ export interface CreateSkillInput {
   name: string;
   description?: string;
   goalHours: number;
+  dailyGoalMinutes?: number;
   color?: string;
 }
 
