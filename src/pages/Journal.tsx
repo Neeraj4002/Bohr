@@ -1,19 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { useSkillsStore } from '@/store/skillsStore';
-import Database from '@tauri-apps/plugin-sql';
+import { db } from '@/lib/database';
 import ReactMarkdown from 'react-markdown';
 import { ChevronLeft, ChevronRight, Save, Edit, BookOpen } from 'lucide-react';
 import { cn } from '@/lib/utils';
-
-let db: Database | null = null;
-
-async function getDb() {
-  if (!db) {
-    db = await Database.load('sqlite:app.db');
-  }
-  return db;
-}
 
 interface Reflection {
   id: string;
@@ -44,8 +35,8 @@ export default function Journal() {
 
   const loadReflectionDates = async () => {
     try {
-      const database = await getDb();
-      const results = await database.select<{ date: string }[]>(
+      
+      const results = await db.select<{ date: string }>(
         'SELECT date FROM reflections'
       );
       setReflectionDates(new Set(results.map(r => r.date)));
@@ -57,9 +48,9 @@ export default function Journal() {
   const loadReflection = async (date: string) => {
     try {
       setLoading(true);
-      const database = await getDb();
       
-      const result = await database.select<Reflection[]>(
+      
+      const result = await db.select<Reflection>(
         'SELECT * FROM reflections WHERE date = $1 LIMIT 1',
         [date]
       );
@@ -72,7 +63,7 @@ export default function Journal() {
         setIsEditing(false);
 
         // Load linked skills
-        const skillLinks = await database.select<any[]>(
+        const skillLinks = await db.select<any>(
           'SELECT skill_id FROM reflection_skills WHERE reflection_id = $1',
           [r.id]
         );
@@ -95,25 +86,25 @@ export default function Journal() {
     if (!content.trim()) return;
 
     try {
-      const database = await getDb();
+      
       
       if (reflection) {
         // Update existing
-        await database.execute(
+        await db.execute(
           'UPDATE reflections SET content = $1, mood = $2 WHERE id = $3',
           [content, mood, reflection.id]
         );
       } else {
         // Create new
         const id = `reflection_${Date.now()}`;
-        await database.execute(
+        await db.execute(
           'INSERT INTO reflections (id, date, content, mood) VALUES ($1, $2, $3, $4)',
           [id, selectedDate, content, mood || null]
         );
 
         // Link skills
         for (const skillId of linkedSkills) {
-          await database.execute(
+          await db.execute(
             'INSERT INTO reflection_skills (reflection_id, skill_id) VALUES ($1, $2)',
             [id, skillId]
           );

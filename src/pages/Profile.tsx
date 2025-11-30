@@ -1,18 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useSkillsStore } from '@/store/skillsStore';
 import { useUserStore } from '@/store/userStore';
-import Database from '@tauri-apps/plugin-sql';
+import { db } from '@/lib/database';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Award, TrendingUp, Target, Calendar as CalendarIcon, Flame } from 'lucide-react';
-
-let db: Database | null = null;
-
-async function getDb() {
-  if (!db) {
-    db = await Database.load('sqlite:app.db');
-  }
-  return db;
-}
 
 interface DayActivity {
   date: string;
@@ -43,10 +34,10 @@ export default function Profile() {
 
   const loadAnalytics = async () => {
     try {
-      const database = await getDb();
+      
       
       // Get last 365 days of activity for heatmap
-      const activities = await database.select<any[]>(
+      const activities = await db.select<any>(
         `SELECT date, SUM(minutes) as total_minutes 
          FROM daily_activities 
          WHERE date >= date('now', '-365 days')
@@ -65,7 +56,7 @@ export default function Profile() {
       setDailyActivities(activitiesWithLevel);
 
       // Get last 7 days for chart
-      const weekly = await database.select<any[]>(
+      const weekly = await db.select<any>(
         `SELECT date, SUM(total_minutes) as minutes
          FROM daily_activities
          WHERE date >= date('now', '-7 days')
@@ -81,7 +72,7 @@ export default function Profile() {
       setWeeklyData(weeklyFormatted);
 
       // Get achievements
-      const achievementsList = await database.select<Achievement[]>(
+      const achievementsList = await db.select<Achievement>(
         'SELECT * FROM achievements ORDER BY unlocked_at DESC'
       );
       setAchievements(achievementsList);
