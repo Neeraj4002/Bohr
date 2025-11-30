@@ -1,0 +1,12 @@
+{
+  "identifier": "main",
+  "description": "Main application capabilities",
+  "windows": ["main"],
+  "permissions": [
+    "sql:default",
+    "sql:allow-execute",
+    "sql:allow-select",
+    "sql:allow-load",
+    "sql:allow-close"
+  ]
+}
