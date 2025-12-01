@@ -207,8 +207,8 @@ export default function Dashboard() {
     setShowCreateModal(false);
   };
 
-  const handleStartTask = (taskId: string, skillId: string, skillName: string) => {
-    startTimer('pomodoro', taskId, skillId, skillName);
+  const handleStartTask = (taskId: string, skillId: string) => {
+    startTimer('pomodoro', taskId, skillId);
     navigate('/focus');
   };
 
@@ -307,7 +307,7 @@ export default function Dashboard() {
                       <p className="text-xs text-gray-500">{skill?.name} • {formatHours(estimatedMinutes)}</p>
                     </div>
                     <span className={cn("text-xs px-1.5 py-0.5 rounded", task.priority === 'high' || task.priority === 'urgent' ? "bg-red-100 text-red-600" : "bg-gray-100 text-gray-500")}>{task.priority}</span>
-                    <button onClick={() => handleStartTask(task.id, task.skillId, skill?.name || '')} className="p-1 rounded-full bg-primary/10 text-primary opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button onClick={() => handleStartTask(task.id, task.skillId)} className="p-1 rounded-full bg-primary/10 text-primary opacity-0 group-hover:opacity-100 transition-opacity">
                       <Play className="w-3 h-3" />
                     </button>
                   </div>

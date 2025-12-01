@@ -350,8 +350,7 @@ export default function Tasks() {
 
   const handleStartTimer = async (taskId: string, skillId: string) => {
     try {
-      const skill = skills.find(s => s.id === skillId);
-      await startTimer('pomodoro', taskId, skillId, skill?.name);
+      await startTimer('pomodoro', taskId, skillId);
       navigate('/focus');
     } catch (error) {
       toast.error('Failed to start timer');

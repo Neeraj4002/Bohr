@@ -37,6 +37,7 @@ interface SkillRecord {
   name: string;
   description?: string;
   goal_hours: number;
+  daily_goal_minutes: number;
   current_minutes: number;
   color: string;
   is_active: number;
@@ -418,7 +419,8 @@ async function handleSkillInsert(db: WebDatabase, params: any[]): Promise<void> 
     name: params[1],
     description: params[2] || '',
     goal_hours: params[3] || 10000,
-    color: params[4] || '#1A73E8',
+    daily_goal_minutes: params[4] || 60,
+    color: params[5] || '#1A73E8',
     current_minutes: 0,
     is_active: 0,
     created_at: now,
@@ -427,10 +429,23 @@ async function handleSkillInsert(db: WebDatabase, params: any[]): Promise<void> 
 }
 
 async function handleSkillUpdate(db: WebDatabase, query: string, params: any[]): Promise<void> {
-  const id = params[params.length - 1];
-  const now = new Date().toISOString();
   const queryLower = query.toLowerCase();
+  const now = new Date().toISOString();
   
+  // Handle bulk updates (like setting all skills inactive)
+  if (queryLower.includes('update skills set') && !queryLower.includes('where')) {
+    if (queryLower.includes('is_active =')) {
+      // Update all skills
+      const allSkills = await db.skills.toArray();
+      for (const skill of allSkills) {
+        await db.skills.update(skill.id, { is_active: params[0], updated_at: now });
+      }
+      return;
+    }
+  }
+  
+  // Handle individual skill updates
+  const id = params[params.length - 1];
   const skill = await db.skills.get(id);
   if (!skill) return;
   
@@ -522,15 +537,13 @@ async function handleTimerSessionInsert(db: WebDatabase, params: any[]): Promise
   const now = new Date().toISOString();
   await db.timerSessions.add({
     id: params[0],
-    task_id: params[1] || undefined,
+    task_id: params[1] === null ? undefined : params[1],
     skill_id: params[2],
     start_time: params[3],
-    end_time: params[4] || undefined,
-    duration: params[5],
-    type: params[6],
-    completed: params[7] ? 1 : 0,
-    planned_duration: params[8],
-    session_type: params[9],
+    end_time: undefined,
+    duration: params[4],
+    type: params[5],
+    completed: params[6] ? 1 : 0,
     created_at: now,
   });
 }

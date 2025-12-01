@@ -57,21 +57,11 @@ export default function MusicPlayer({ compact = false }: MusicPlayerProps) {
   const isPlaying = mode === 'local' ? state.isPlaying : (mode === 'youtube' && youtubePlaying);
   const trackName = mode === 'local' ? state.currentTrack?.name : (mode === 'youtube' ? selectedStream.name : null);
 
-  // Hidden YouTube iframe for audio only (no video shown)
-  const YouTubeAudio = () => (
-    <iframe
-      src={`https://www.youtube.com/embed/${selectedStream.id}?autoplay=1&loop=1&playlist=${selectedStream.id}`}
-      className="hidden"
-      allow="autoplay"
-    />
-  );
-
   // Compact header button - this is the main one used in FocusMode
   if (compact) {
     return (
       <div className="relative" ref={panelRef}>
-        {/* Hidden YouTube player for audio */}
-        {mode === 'youtube' && youtubePlaying && <YouTubeAudio />}
+        {/* YouTube iframe is now rendered globally in Layout.tsx */}
         
         {/* Main Button */}
         <button
@@ -272,7 +262,7 @@ export default function MusicPlayer({ compact = false }: MusicPlayerProps) {
   // Full player (unused now, but kept for potential settings page)
   return (
     <div className="p-4 rounded-2xl bg-white/5 border border-white/10">
-      {mode === 'youtube' && youtubePlaying && <YouTubeAudio />}
+      {/* YouTube iframe is now rendered globally in Layout.tsx */}
       
       <div className="flex items-center gap-4">
         <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center flex-shrink-0">

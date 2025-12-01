@@ -117,7 +117,8 @@ export default function Skills() {
 
   const handleSetActive = async (id: string) => {
     try {
-      await setActiveSkill(id);
+      const skill = skills.find(s => s.id === id);
+      await setActiveSkill(skill || null);
       toast.success('Active skill updated!');
     } catch (error) {
       toast.error('Failed to set active skill');

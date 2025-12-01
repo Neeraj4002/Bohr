@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'sonner';
 import { ErrorBoundary } from './components/ErrorBoundary';
@@ -16,10 +16,37 @@ import { useThemeStore } from './store/themeStore';
 import { useTimerStore } from './store/timerStore';
 import { useCelebrationStore } from './store/celebrationStore';
 import { preloadSounds, ensureNotificationPermission } from './lib/notifications';
+import { musicPlayer, MusicState } from './lib/music';
+
+// Global YouTube player that persists across ALL pages including FocusMode
+function GlobalYouTubePlayer() {
+  const [state, setState] = useState<MusicState>(musicPlayer.state);
+
+  useEffect(() => {
+    const unsubscribe = musicPlayer.subscribe(setState);
+    return () => { unsubscribe(); };
+  }, []);
+
+  const mode = musicPlayer.mode;
+  
+  if (mode !== 'youtube' || !state.youtubeIsPlaying || !state.youtubeStream) {
+    return null;
+  }
+
+  return (
+    <iframe
+      key={state.youtubeStream.id}
+      src={`https://www.youtube.com/embed/${state.youtubeStream.id}?autoplay=1&loop=1&playlist=${state.youtubeStream.id}&enablejsapi=1`}
+      className="fixed -top-[9999px] -left-[9999px] w-1 h-1 opacity-0 pointer-events-none"
+      allow="autoplay; encrypted-media"
+      title="YouTube Music Player"
+    />
+  );
+}
 
 function App() {
   const { initTheme, resolvedTheme } = useThemeStore();
-  const loadSettings = useTimerStore((state) => state.loadSettings);
+  const { loadSettings } = useTimerStore();
   const showConfetti = useCelebrationStore((state) => state.showConfetti);
 
   useEffect(() => {
@@ -39,6 +66,9 @@ function App() {
   return (
     <ErrorBoundary>
       <BrowserRouter>
+        {/* Global YouTube player - persists across ALL pages */}
+        <GlobalYouTubePlayer />
+        
         <Toaster 
           position="top-right" 
           theme={resolvedTheme}

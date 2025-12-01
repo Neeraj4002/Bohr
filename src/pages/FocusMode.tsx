@@ -50,7 +50,7 @@ export default function FocusMode() {
 
   useEffect(() => {
     if (activeSkill) {
-      fetchTasks();
+      fetchTasks(activeSkill.id);
     }
   }, [activeSkill, fetchTasks]);
 
@@ -71,7 +71,7 @@ export default function FocusMode() {
       alert('Please select an active skill first');
       return;
     }
-    startTimer(sessionType, selectedTaskId || '', activeSkill.id);
+    startTimer(sessionType, selectedTaskId || null, activeSkill.id);
   };
 
   const handlePause = () => pauseTimer();

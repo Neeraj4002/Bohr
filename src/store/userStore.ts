@@ -184,7 +184,7 @@ export const useUserStore = create<UserState>((set, get) => ({
       }
       
       if (updateParts.length > 0) {
-        updateParts.push("updated_at = NOW()");
+        updateParts.push("updated_at = datetime('now')");
         await db.execute(
           `UPDATE user_settings SET ${updateParts.join(', ')}`,
           values
@@ -236,7 +236,7 @@ export const useUserStore = create<UserState>((set, get) => ({
       }
 
       if (updateParts.length > 0) {
-        updateParts.push("updated_at = NOW()");
+        updateParts.push("updated_at = datetime('now')");
         await db.execute(
           `UPDATE user_settings SET ${updateParts.join(', ')}`,
           values

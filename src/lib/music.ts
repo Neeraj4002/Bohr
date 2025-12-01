@@ -20,14 +20,12 @@ export interface MusicState {
 
 export type PlayerMode = 'none' | 'local' | 'youtube';
 
-// Popular lofi YouTube streams/videos (embed IDs)
+// Popular lofi YouTube streams/videos (embed IDs) 
 export const LOFI_STREAMS = [
-  { id: 'jfKfPfyJRdk', name: 'lofi hip hop radio 📚 beats to relax/study to', channel: 'Lofi Girl' },
-  { id: 'rUxyKA_-grg', name: 'lofi hip hop radio 💤 beats to sleep/chill to', channel: 'Lofi Girl' },
-  { id: '4xDzrJKXOOY', name: 'synthwave radio 🌌 beats to chill/game to', channel: 'Lofi Girl' },
-  { id: 'MVPTGNGiI-4', name: 'dark ambient radio 🎧 music to escape/dream to', channel: 'Lofi Girl' },
+  { id: '5R2wjfLevjo', name: 'Oppenheimer Soundtrack 🎬', channel: 'Ludwig Göransson' },
+  { id: 'ELAK_LS_c2Q', name: '回忆一笑悲伤过往 🎧', channel: 'Topic Girl' },
+  { id: 'UDVtMYqUAyw', name: 'Interstellar Main Track 🎬', channel: 'Ludwig Göransson' },
 ];
-
 class MusicPlayer {
   private audio: HTMLAudioElement | null = null;
   private listeners: Set<(state: MusicState) => void> = new Set();

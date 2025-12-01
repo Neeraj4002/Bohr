@@ -38,6 +38,7 @@ CREATE TABLE IF NOT EXISTS skills (
     name TEXT NOT NULL,
     description TEXT,
     goal_hours INTEGER NOT NULL DEFAULT 10000,
+    daily_goal_minutes INTEGER NOT NULL DEFAULT 60,
     current_minutes INTEGER NOT NULL DEFAULT 0,
     color TEXT NOT NULL DEFAULT '#1A73E8',
     is_active INTEGER NOT NULL DEFAULT 0,
