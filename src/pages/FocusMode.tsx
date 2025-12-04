@@ -128,19 +128,78 @@ export default function FocusMode() {
             <div className="space-y-2">
               <h1 className="text-4xl font-bold">{motivationalMessage}</h1>
               <p className="text-white/50">You completed a {type === 'pomodoro' ? 'focus' : 'break'} session</p>
+              
+              {/* Show session progress for task */}
+              {currentTask && type === 'pomodoro' && (
+                <div className="mt-4 px-4 py-3 rounded-xl bg-white/5 border border-white/10 inline-flex items-center gap-3">
+                  <Target className="w-5 h-5 text-primary" />
+                  <div className="text-left">
+                    <p className="text-white/80 font-medium">{currentTask.title}</p>
+                    <p className="text-white/50 text-sm">
+                      {(currentTask.pomodoroSessions || 0) + 1}/{currentTask.estimatedPomodoros || 1} sessions completed
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
-            <div className="flex gap-4 justify-center">
+            
+            {/* Action Buttons - Different options based on session type */}
+            <div className="flex flex-col items-center gap-4">
+              {type === 'pomodoro' ? (
+                <>
+                  <p className="text-white/40 text-sm">Take a well-deserved break</p>
+                  <div className="flex gap-4 justify-center">
+                    <Button
+                      onClick={() => {
+                        if (activeSkill) {
+                          startTimer('short-break', currentTaskId || null, activeSkill.id);
+                        }
+                      }}
+                      className="bg-green-600 hover:bg-green-700 px-6 py-5 text-base gap-2 rounded-full"
+                    >
+                      <Coffee className="w-5 h-5" />
+                      5min Break
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        if (activeSkill) {
+                          startTimer('long-break', currentTaskId || null, activeSkill.id);
+                        }
+                      }}
+                      variant="outline"
+                      className="bg-white/5 border-white/10 hover:bg-white/10 px-6 py-5 text-base gap-2 rounded-full"
+                    >
+                      <Coffee className="w-5 h-5" />
+                      15min Break
+                    </Button>
+                  </div>
+                  <div className="flex gap-4 justify-center mt-2">
+                    <Button
+                      onClick={handleStart}
+                      variant="outline"
+                      className="bg-white/5 border-white/10 hover:bg-white/10 px-6 py-5 text-base gap-2 rounded-full"
+                    >
+                      <Play className="w-5 h-5" />
+                      Skip Break, Continue
+                    </Button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <p className="text-white/40 text-sm">Break's over! Ready to focus?</p>
+                  <Button
+                    onClick={handleStart}
+                    className="bg-primary hover:bg-primary/90 px-8 py-6 text-lg gap-2 rounded-full"
+                  >
+                    <Play className="w-5 h-5" />
+                    Start Focus Session
+                  </Button>
+                </>
+              )}
               <Button
-                onClick={handleStart}
-                className="bg-primary hover:bg-primary/90 px-8 py-6 text-lg gap-2 rounded-full"
-              >
-                <Play className="w-5 h-5" />
-                Start Another
-              </Button>
-              <Button
-                variant="outline"
+                variant="ghost"
                 onClick={() => navigate('/dashboard')}
-                className="bg-white/5 border-white/10 hover:bg-white/10 px-8 py-6 text-lg rounded-full"
+                className="text-white/50 hover:text-white/70 hover:bg-transparent px-4 py-2"
               >
                 Done for now
               </Button>
@@ -151,13 +210,38 @@ export default function FocusMode() {
         {/* Active Timer State (Running or Paused) */}
         {(status === 'running' || status === 'paused') && (
           <div className="text-center space-y-8">
-            {/* Current Task */}
+            {/* Current Task with Session Info */}
             {currentTask && (
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10">
-                <Target className="w-4 h-4 text-primary" />
-                <span className="text-white/80">{currentTask.title}</span>
+              <div className="flex flex-col items-center gap-2">
+                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10">
+                  <Target className="w-4 h-4 text-primary" />
+                  <span className="text-white/80">{currentTask.title}</span>
+                </div>
+                <div className="flex items-center gap-4 text-white/50 text-sm">
+                  <span className="flex items-center gap-1.5">
+                    <div className="w-2 h-2 rounded-full bg-primary" />
+                    {currentTask.pomodoroSessions || 0}/{currentTask.estimatedPomodoros || 1} sessions
+                  </span>
+                  <span>•</span>
+                  <span>{Math.round((currentTask.totalMinutes || 0) / 60)}h logged</span>
+                </div>
               </div>
             )}
+
+            {/* Session Type Badge */}
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-sm">
+              {type === 'pomodoro' ? (
+                <>
+                  <Target className="w-3.5 h-3.5 text-primary" />
+                  <span className="text-white/70">Focus Session</span>
+                </>
+              ) : (
+                <>
+                  <Coffee className="w-3.5 h-3.5 text-green-400" />
+                  <span className="text-white/70">{type === 'short-break' ? 'Short Break' : 'Long Break'}</span>
+                </>
+              )}
+            </div>
 
             {/* Timer Display - Clean & Large */}
             <div className="relative">

@@ -36,4 +36,6 @@ export interface UpdateTaskInput {
   dueDate?: string;
   estimatedPomodoros?: number;
   order?: number;
+  pomodoroSessions?: number;
+  totalMinutes?: number;
 }

@@ -145,33 +145,26 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const { skills, fetchSkills, createSkill } = useSkillsStore();
   const { tasks, fetchTasks } = useTasksStore();
-  const { settings, startTimer } = useTimerStore();
+  const { settings, startTimer, fetchTodayActivity, fetchYearlyActivity, todayMinutesBySkill, dailyActivity } = useTimerStore();
   
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newSkillName, setNewSkillName] = useState('');
   const [newSkillGoalHours, setNewSkillGoalHours] = useState('10000');
   const [isLoading, setIsLoading] = useState(true);
-  
-  // Mock activity data for consistency calendar
-  const [activityData] = useState<Record<string, number>>(() => {
-    const data: Record<string, number> = {};
-    const today = new Date();
-    for (let i = 0; i < 365; i++) {
-      const date = new Date(today);
-      date.setDate(date.getDate() - i);
-      data[date.toISOString().split('T')[0]] = Math.random() > 0.4 ? Math.floor(Math.random() * 180) : 0;
-    }
-    return data;
-  });
 
   useEffect(() => {
     const loadData = async () => {
       setIsLoading(true);
-      await Promise.all([fetchSkills(), fetchTasks()]);
+      await Promise.all([
+        fetchSkills(), 
+        fetchTasks(),
+        fetchTodayActivity(),
+        fetchYearlyActivity()
+      ]);
       setIsLoading(false);
     };
     loadData();
-  }, [fetchSkills, fetchTasks]);
+  }, [fetchSkills, fetchTasks, fetchTodayActivity, fetchYearlyActivity]);
   
   const todayTasks = useMemo(() => {
     const today = getTodayString();
@@ -181,11 +174,16 @@ export default function Dashboard() {
     ).slice(0, 5);
   }, [tasks]);
   
-  const totalTodayMinutes = useMemo(() => 
-    skills.reduce((sum, s) => sum + Math.min(s.currentMinutes, s.dailyGoalMinutes || 60), 0), [skills]);
+  // Calculate today's total minutes from actual timer sessions
+  const totalTodayMinutes = useMemo(() => {
+    return Object.values(todayMinutesBySkill).reduce((sum, mins) => sum + mins, 0);
+  }, [todayMinutesBySkill]);
   
   const totalDailyGoal = useMemo(() => 
     skills.reduce((sum, s) => sum + (s.dailyGoalMinutes || 60), 0), [skills]);
+
+  // Use actual activity data for consistency calendar
+  const activityData = useMemo(() => dailyActivity, [dailyActivity]);
 
   const currentStreak = useMemo(() => {
     let streak = 0;
@@ -348,8 +346,10 @@ export default function Dashboard() {
         ) : (
           <div className="grid grid-cols-4 gap-3">
             {skills.slice(0, 4).map(skill => {
-              const todayMins = Math.min(skill.currentMinutes, skill.dailyGoalMinutes || 60);
-              const progress = formatPercent(todayMins, skill.dailyGoalMinutes || 60);
+              // Use today's actual minutes from timer sessions
+              const todayMins = todayMinutesBySkill[skill.id] || 0;
+              const dailyGoal = skill.dailyGoalMinutes || 60;
+              const progress = formatPercent(todayMins, dailyGoal);
               return (
                 <div key={skill.id} onClick={() => navigate('/skills')} className="elevation-1 rounded-lg bg-white dark:bg-card p-3 cursor-pointer hover:elevation-2 transition-all">
                   <div className="flex items-center gap-2 mb-1">
@@ -357,7 +357,7 @@ export default function Dashboard() {
                     <span className="text-sm font-medium truncate flex-1">{skill.name}</span>
                     <ChevronRight className="w-4 h-4 text-gray-400" />
                   </div>
-                  <p className="text-xs text-gray-500 mb-1">Today: {formatHours(todayMins)} / {formatHours(skill.dailyGoalMinutes || 60)}</p>
+                  <p className="text-xs text-gray-500 mb-1">Today: {formatHours(todayMins)} / {formatHours(dailyGoal)}</p>
                   <div className="flex items-center gap-2">
                     <div className="flex-1 h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
                       <div className="h-full rounded-full" style={{ width: `${Math.min(100, progress)}%`, backgroundColor: skill.color }} />

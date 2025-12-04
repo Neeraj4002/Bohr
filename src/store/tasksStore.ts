@@ -116,6 +116,14 @@ export const useTasksStore = create<TasksState>((set, get) => ({
         updates.push('order_index = $' + (values.length + 1));
         values.push(input.order);
       }
+      if (input.pomodoroSessions !== undefined) {
+        updates.push('pomodoro_sessions = $' + (values.length + 1));
+        values.push(input.pomodoroSessions);
+      }
+      if (input.totalMinutes !== undefined) {
+        updates.push('total_minutes = $' + (values.length + 1));
+        values.push(input.totalMinutes);
+      }
 
       values.push(input.id);
 

@@ -5,6 +5,8 @@ import { TimerSession, TimerState, TimerType, PomodoroSettings, CreateTimerSessi
 interface TimerStore extends TimerState {
   settings: PomodoroSettings;
   sessions: TimerSession[];
+  todayMinutesBySkill: Record<string, number>;
+  dailyActivity: Record<string, number>;
   loading: boolean;
   error: string | null;
   
@@ -18,6 +20,10 @@ interface TimerStore extends TimerState {
   fetchSessions: (skillId?: string) => Promise<void>;
   createSession: (input: CreateTimerSessionInput) => Promise<TimerSession>;
   updateSession: (sessionId: string, updates: Partial<TimerSession>) => Promise<void>;
+  
+  // Daily activity
+  fetchTodayActivity: () => Promise<void>;
+  fetchYearlyActivity: () => Promise<void>;
   
   // Settings
   updateSettings: (settings: Partial<PomodoroSettings>) => void;
@@ -53,6 +59,8 @@ export const useTimerStore = create<TimerStore>((set, get) => ({
   ...defaultState,
   settings: defaultSettings,
   sessions: [],
+  todayMinutesBySkill: {},
+  dailyActivity: {},
   loading: false,
   error: null,
 
@@ -306,5 +314,53 @@ export const useTimerStore = create<TimerStore>((set, get) => ({
     // In a real app, this would load settings from database/storage
     // For now, just use defaults
     set({ settings: defaultSettings });
+  },
+
+  fetchTodayActivity: async () => {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      // Get today's completed pomodoro sessions grouped by skill
+      const sessions = await db.select<any[]>(
+        `SELECT skill_id, SUM(duration) as total_minutes 
+         FROM timer_sessions 
+         WHERE completed = 1 
+           AND type = 'pomodoro'
+           AND date(start_time) = date($1)
+         GROUP BY skill_id`,
+        [today]
+      );
+      
+      const todayMinutesBySkill: Record<string, number> = {};
+      sessions.forEach((s: any) => {
+        todayMinutesBySkill[s.skill_id] = s.total_minutes || 0;
+      });
+      
+      set({ todayMinutesBySkill });
+    } catch (error) {
+      console.error('Failed to fetch today activity:', error);
+    }
+  },
+
+  fetchYearlyActivity: async () => {
+    try {
+      // Get last 365 days of activity
+      const sessions = await db.select<any[]>(
+        `SELECT date(start_time) as activity_date, SUM(duration) as total_minutes 
+         FROM timer_sessions 
+         WHERE completed = 1 
+           AND type = 'pomodoro'
+           AND start_time >= date('now', '-365 days')
+         GROUP BY date(start_time)`
+      );
+      
+      const dailyActivity: Record<string, number> = {};
+      sessions.forEach((s: any) => {
+        dailyActivity[s.activity_date] = s.total_minutes || 0;
+      });
+      
+      set({ dailyActivity });
+    } catch (error) {
+      console.error('Failed to fetch yearly activity:', error);
+    }
   },
 }));
