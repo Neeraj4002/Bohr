@@ -281,7 +281,7 @@ export default function Dashboard() {
             <h2 className="text-m font">Today's Tasks</h2>
             <button onClick={() => navigate('/tasks')} className="text-xs text-primary">View All →</button>
           </div>
-          <div className="space-y-1.5 max-h-[150px] overflow-y-auto">
+          <div className="space-y-1.5 flex-1 overflow-y-auto">
             {todayTasks.length === 0 ? (
               <div className="py-4 text-center">
                 <p className="text-xs text-gray-500 mb-2">No tasks for today</p>

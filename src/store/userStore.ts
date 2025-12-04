@@ -186,7 +186,7 @@ export const useUserStore = create<UserState>((set, get) => ({
       if (updateParts.length > 0) {
         updateParts.push("updated_at = datetime('now')");
         await db.execute(
-          `UPDATE user_settings SET ${updateParts.join(', ')}`,
+          `UPDATE user_settings SET ${updateParts.join(', ')} WHERE id = 1`,
           values
         );
       }
@@ -202,6 +202,8 @@ export const useUserStore = create<UserState>((set, get) => ({
     try {
       const updateParts: string[] = [];
       const values: any[] = [];
+
+      console.log('[updateProfile] Input:', updates);
 
       if (updates.name !== undefined) {
         updateParts.push('name = $' + (values.length + 1));
@@ -237,14 +239,18 @@ export const useUserStore = create<UserState>((set, get) => ({
 
       if (updateParts.length > 0) {
         updateParts.push("updated_at = datetime('now')");
-        await db.execute(
-          `UPDATE user_settings SET ${updateParts.join(', ')}`,
-          values
-        );
+        const query = `UPDATE user_settings SET ${updateParts.join(', ')} WHERE id = 1`;
+        console.log('[updateProfile] Query:', query);
+        console.log('[updateProfile] Values:', values);
+        await db.execute(query, values);
+      } else {
+        console.log('[updateProfile] No fields to update');
       }
       
       await get().fetchProfile();
+      console.log('[updateProfile] Done, profile refetched');
     } catch (error) {
+      console.error('[updateProfile] Error:', error);
       set({ error: String(error) });
       throw error;
     }

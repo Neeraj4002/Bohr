@@ -88,8 +88,8 @@ export default function Settings() {
       // Update name separately if changed
       if (profile && name !== profile.name) {
         await db.execute(
-          'UPDATE users SET name = $1 WHERE id = $2',
-          [name, profile.id]
+          'UPDATE user_settings SET name = $1 WHERE id = 1',
+          [name]
         );
       }
       

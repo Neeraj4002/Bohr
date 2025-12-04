@@ -100,17 +100,25 @@ export const useSkillsStore = create<SkillsState>((set, get) => ({
         values.push(input.color);
       }
 
+      if (updates.length === 0) {
+        console.log('[updateSkill] No fields to update');
+        return;
+      }
+
       // Add updated_at timestamp
-      updates.push('updated_at = datetime(\'now\')');
+      updates.push("updated_at = datetime('now')");
       values.push(input.id);
 
-      await db.execute(
-        `UPDATE skills SET ${updates.join(', ')} WHERE id = $${values.length}`,
-        values
-      );
+      const query = `UPDATE skills SET ${updates.join(', ')} WHERE id = $${values.length}`;
+      console.log('[updateSkill] Query:', query);
+      console.log('[updateSkill] Values:', values);
+
+      await db.execute(query, values);
       
       await get().fetchSkills();
+      console.log('[updateSkill] Done, skills refetched');
     } catch (error) {
+      console.error('[updateSkill] Error:', error);
       set({ error: String(error) });
       throw error;
     }

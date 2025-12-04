@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import { db, generateId } from '@/lib/database';
 import { TimerSession, TimerState, TimerType, PomodoroSettings, CreateTimerSessionInput } from '@/types';
+import { useTasksStore } from './tasksStore';
+import { useSkillsStore } from './skillsStore';
 
 interface TimerStore extends TimerState {
   settings: PomodoroSettings;
@@ -24,6 +26,7 @@ interface TimerStore extends TimerState {
   // Daily activity
   fetchTodayActivity: () => Promise<void>;
   fetchYearlyActivity: () => Promise<void>;
+  recordManualTime: (skillId: string, taskId: string | null, minutes: number) => Promise<void>;
   
   // Settings
   updateSettings: (settings: Partial<PomodoroSettings>) => void;
@@ -125,20 +128,62 @@ export const useTimerStore = create<TimerStore>((set, get) => ({
     }
   },
 
-  stopTimer: () => {
+  stopTimer: async () => {
     if (timerInterval) {
       clearInterval(timerInterval);
       timerInterval = null;
     }
     
-    const { sessionId } = get();
-    if (sessionId) {
-      // Mark session as incomplete
+    const { sessionId, currentSkillId, currentTaskId, type, totalSeconds, remainingSeconds } = get();
+    
+    // Calculate actual time worked (in minutes)
+    const elapsedSeconds = totalSeconds - remainingSeconds;
+    const elapsedMinutes = Math.floor(elapsedSeconds / 60);
+    
+    console.log('[stopTimer] elapsed:', elapsedMinutes, 'mins, sessionId:', sessionId, 'skillId:', currentSkillId);
+    
+    if (sessionId && elapsedMinutes > 0 && type === 'pomodoro') {
       const now = new Date().toISOString();
-      db.execute(
-        'UPDATE timer_sessions SET end_time = $1, completed = $2 WHERE id = $3',
-        [now, false, sessionId]
-      ).catch(console.error);
+      
+      try {
+        // 1. Update session - mark completed with actual duration
+        await db.execute(
+          'UPDATE timer_sessions SET end_time = $1, completed = $2, duration = $3 WHERE id = $4',
+          [now, 1, elapsedMinutes, sessionId]
+        );
+        console.log('[stopTimer] session updated');
+        
+        // 2. Update skill total minutes
+        if (currentSkillId) {
+          await db.execute(
+            'UPDATE skills SET current_minutes = current_minutes + $1 WHERE id = $2',
+            [elapsedMinutes, currentSkillId]
+          );
+          console.log('[stopTimer] skill updated');
+        }
+        
+        // 3. Update task total time
+        if (currentTaskId) {
+          await db.execute(
+            'UPDATE tasks SET total_minutes = COALESCE(total_minutes, 0) + $1 WHERE id = $2',
+            [elapsedMinutes, currentTaskId]
+          );
+          console.log('[stopTimer] task updated');
+        }
+        
+        // 4. Refresh stores so UI updates
+        await get().fetchTodayActivity();
+        console.log('[stopTimer] todayActivity fetched:', get().todayMinutesBySkill);
+        
+        useTasksStore.getState().fetchTasks();
+        useSkillsStore.getState().fetchSkills();
+        
+      } catch (error) {
+        console.error('[stopTimer] Failed:', error);
+      }
+    } else if (sessionId) {
+      // No work done - delete empty session
+      await db.execute('DELETE FROM timer_sessions WHERE id = $1', [sessionId]);
     }
 
     set({
@@ -178,11 +223,14 @@ export const useTimerStore = create<TimerStore>((set, get) => ({
           [now, true, sessionId]
         );
 
-        // If this was a pomodoro, increment the task's pomodoro count
+        // If this was a pomodoro, increment the task's pomodoro count and total time
         if (type === 'pomodoro' && currentTaskId) {
           await db.execute(
-            'UPDATE tasks SET pomodoro_sessions = COALESCE(pomodoro_sessions, 0) + 1 WHERE id = $1',
-            [currentTaskId]
+            `UPDATE tasks SET 
+              pomodoro_sessions = COALESCE(pomodoro_sessions, 0) + 1,
+              total_minutes = COALESCE(total_minutes, 0) + $1 
+             WHERE id = $2`,
+            [settings.pomodoroDuration, currentTaskId]
           );
         }
 
@@ -192,6 +240,12 @@ export const useTimerStore = create<TimerStore>((set, get) => ({
             'UPDATE skills SET current_minutes = current_minutes + $1 WHERE id = $2',
             [settings.pomodoroDuration, currentSkillId]
           );
+          
+          // Refresh today's activity data
+          await get().fetchTodayActivity();
+          // Also refresh tasks and skills stores so other components get updates
+          useTasksStore.getState().fetchTasks();
+          useSkillsStore.getState().fetchSkills();
         }
       }
 
@@ -314,6 +368,41 @@ export const useTimerStore = create<TimerStore>((set, get) => ({
     // In a real app, this would load settings from database/storage
     // For now, just use defaults
     set({ settings: defaultSettings });
+  },
+
+  recordManualTime: async (skillId, taskId, minutes) => {
+    if (minutes === 0) return;
+    
+    try {
+      const now = new Date();
+      const sessionId = generateId('session');
+      
+      // Create a completed timer session for the manual time
+      await db.execute(
+        `INSERT INTO timer_sessions (id, task_id, skill_id, start_time, end_time, duration, type, completed, created_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+        [
+          sessionId,
+          taskId,
+          skillId,
+          now.toISOString(),
+          now.toISOString(),
+          minutes,
+          'pomodoro',
+          1, // completed = true
+          now.toISOString()
+        ]
+      );
+      
+      // Refresh activity data
+      await get().fetchTodayActivity();
+      await get().fetchYearlyActivity();
+      
+      console.log(`[recordManualTime] Recorded ${minutes} minutes for skill ${skillId}`);
+    } catch (error) {
+      console.error('Failed to record manual time:', error);
+      throw error;
+    }
   },
 
   fetchTodayActivity: async () => {

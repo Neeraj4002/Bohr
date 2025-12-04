@@ -264,6 +264,14 @@ async function selectWebQuery<T>(query: string, params: any[]): Promise<T[]> {
   const db = getWebDb();
   const queryLower = query.toLowerCase().trim();
   
+  // Handle streak calculations FIRST (before daily_activities check)
+  // These are complex WITH RECURSIVE queries that also contain 'from daily_activities'
+  if (queryLower.includes('streak') || queryLower.includes('with recursive')) {
+    const activities = await db.dailyActivities.toArray();
+    const streak = calculateStreak(activities);
+    return [{ streak }] as T[];
+  }
+  
   // Handle common SELECT queries
   if (queryLower.includes('from user_settings')) {
     const result = await db.userSettings.get(1);
@@ -298,11 +306,55 @@ async function selectWebQuery<T>(query: string, params: any[]): Promise<T[]> {
   }
   
   if (queryLower.includes('from timer_sessions')) {
-    if (queryLower.includes('where skill_id =')) {
-      const sessions = await db.timerSessions.where('skill_id').equals(params[0]).toArray();
-      return sessions as T[];
-    }
     const sessions = await db.timerSessions.toArray();
+    
+    // Handle: SELECT skill_id, SUM(duration) ... WHERE completed = 1 AND type = 'pomodoro' AND date(start_time) = date($1) GROUP BY skill_id
+    if (queryLower.includes('sum(duration)') && queryLower.includes('group by skill_id')) {
+      const today = params[0] ? params[0].split('T')[0] : new Date().toISOString().split('T')[0];
+      const filtered = sessions.filter(s => 
+        s.completed === 1 && 
+        s.type === 'pomodoro' && 
+        s.start_time && s.start_time.startsWith(today)
+      );
+      
+      // Group by skill_id and sum duration
+      const grouped: Record<string, number> = {};
+      filtered.forEach(s => {
+        if (s.skill_id) {
+          grouped[s.skill_id] = (grouped[s.skill_id] || 0) + (s.duration || 0);
+        }
+      });
+      
+      return Object.entries(grouped).map(([skill_id, total_minutes]) => ({
+        skill_id,
+        total_minutes
+      })) as T[];
+    }
+    
+    // Handle: SELECT date(start_time), SUM(duration) ... GROUP BY date(start_time) - for yearly activity
+    if (queryLower.includes('sum(duration)') && queryLower.includes('group by date(start_time)')) {
+      const filtered = sessions.filter(s => s.completed === 1 && s.type === 'pomodoro');
+      
+      // Group by date and sum duration
+      const grouped: Record<string, number> = {};
+      filtered.forEach(s => {
+        if (s.start_time) {
+          const date = s.start_time.split('T')[0];
+          grouped[date] = (grouped[date] || 0) + (s.duration || 0);
+        }
+      });
+      
+      return Object.entries(grouped).map(([activity_date, total_minutes]) => ({
+        activity_date,
+        total_minutes
+      })) as T[];
+    }
+    
+    if (queryLower.includes('where skill_id =')) {
+      const filtered = sessions.filter(s => s.skill_id === params[0]);
+      return filtered as T[];
+    }
+    
     return sessions as T[];
   }
   
@@ -339,13 +391,6 @@ async function selectWebQuery<T>(query: string, params: any[]): Promise<T[]> {
     }
     const reflections = await db.reflections.orderBy('date').reverse().toArray();
     return reflections as T[];
-  }
-  
-  // Handle streak calculations
-  if (queryLower.includes('streak')) {
-    const activities = await db.dailyActivities.toArray();
-    const streak = calculateStreak(activities);
-    return [{ streak }] as T[];
   }
   
   // Handle count queries
@@ -399,15 +444,50 @@ async function handleUserSettingsQuery(db: WebDatabase, query: string, params: a
   if (queryLower.startsWith('update')) {
     const updates: Partial<UserSettingsRecord> = { updated_at: now };
     
-    // Parse update fields from query
-    if (queryLower.includes('name =')) updates.name = params[0];
-    if (queryLower.includes('theme =')) updates.theme = params[0];
-    if (queryLower.includes('pomodoro_duration =')) updates.pomodoro_duration = params[0];
-    if (queryLower.includes('short_break_duration =')) updates.short_break_duration = params[0];
-    if (queryLower.includes('long_break_duration =')) updates.long_break_duration = params[0];
-    if (queryLower.includes('sound_enabled =')) updates.sound_enabled = params[0];
-    if (queryLower.includes('notifications_enabled =')) updates.notifications_enabled = params[0];
+    // Parse each field with its parameter position dynamically
+    const parseParam = (field: string): number | null => {
+      const regex = new RegExp(`${field} = \\$(\\d+)`, 'i');
+      const match = query.match(regex);
+      return match ? parseInt(match[1]) - 1 : null;
+    };
     
+    const nameIdx = parseParam('name');
+    if (nameIdx !== null) updates.name = params[nameIdx];
+    
+    const themeIdx = parseParam('theme');
+    if (themeIdx !== null) updates.theme = params[themeIdx];
+    
+    const pomodoroIdx = parseParam('pomodoro_duration');
+    if (pomodoroIdx !== null) updates.pomodoro_duration = params[pomodoroIdx];
+    
+    const shortBreakIdx = parseParam('short_break_duration');
+    if (shortBreakIdx !== null) updates.short_break_duration = params[shortBreakIdx];
+    
+    const longBreakIdx = parseParam('long_break_duration');
+    if (longBreakIdx !== null) updates.long_break_duration = params[longBreakIdx];
+    
+    const soundIdx = parseParam('sound_enabled');
+    if (soundIdx !== null) updates.sound_enabled = params[soundIdx];
+    
+    const notifIdx = parseParam('notifications_enabled');
+    if (notifIdx !== null) updates.notifications_enabled = params[notifIdx];
+    
+    const dailyGoalIdx = parseParam('daily_goal_minutes');
+    if (dailyGoalIdx !== null) updates.daily_goal_minutes = params[dailyGoalIdx];
+    
+    const weeklyGoalIdx = parseParam('weekly_goal_minutes');
+    if (weeklyGoalIdx !== null) updates.weekly_goal_minutes = params[weeklyGoalIdx];
+    
+    const autoStartBreaksIdx = parseParam('auto_start_breaks');
+    if (autoStartBreaksIdx !== null) updates.auto_start_breaks = params[autoStartBreaksIdx];
+    
+    const autoStartPomodorosIdx = parseParam('auto_start_pomodoros');
+    if (autoStartPomodorosIdx !== null) updates.auto_start_pomodoros = params[autoStartPomodorosIdx];
+    
+    const longBreakIntervalIdx = parseParam('long_break_interval');
+    if (longBreakIntervalIdx !== null) updates.long_break_interval = params[longBreakIntervalIdx];
+    
+    console.log('[handleUserSettingsQuery] Updating user settings with:', updates);
     await db.userSettings.update(1, updates);
   }
 }
@@ -451,6 +531,13 @@ async function handleSkillUpdate(db: WebDatabase, query: string, params: any[]):
   
   const updates: Partial<SkillRecord> = { updated_at: now };
   
+  // Parse each field with its parameter position dynamically
+  const parseParam = (field: string): number | null => {
+    const regex = new RegExp(`${field} = \\$(\\d+)`, 'i');
+    const match = query.match(regex);
+    return match ? parseInt(match[1]) - 1 : null;
+  };
+  
   // Handle current_minutes increment
   if (queryLower.includes('current_minutes = current_minutes +')) {
     const match = query.match(/current_minutes = current_minutes \+ \$(\d+)/i);
@@ -458,23 +545,50 @@ async function handleSkillUpdate(db: WebDatabase, query: string, params: any[]):
       const paramIndex = parseInt(match[1]) - 1;
       updates.current_minutes = skill.current_minutes + params[paramIndex];
     }
-  } else if (queryLower.includes('current_minutes =')) {
-    updates.current_minutes = params[0];
-  }
-  
-  if (queryLower.includes('is_active =')) {
-    // Find which param is for is_active
-    const match = query.match(/is_active = \$(\d+)/i);
-    if (match) {
-      const paramIndex = parseInt(match[1]) - 1;
-      updates.is_active = params[paramIndex];
+  } else {
+    const currentMinIdx = parseParam('current_minutes');
+    if (currentMinIdx !== null) {
+      updates.current_minutes = params[currentMinIdx];
     }
   }
   
-  if (queryLower.includes('name =')) {
-    updates.name = params[0];
+  // Handle is_active
+  const isActiveIdx = parseParam('is_active');
+  if (isActiveIdx !== null) {
+    updates.is_active = params[isActiveIdx];
   }
   
+  // Handle name
+  const nameIdx = parseParam('name');
+  if (nameIdx !== null) {
+    updates.name = params[nameIdx];
+  }
+  
+  // Handle description
+  const descIdx = parseParam('description');
+  if (descIdx !== null) {
+    updates.description = params[descIdx];
+  }
+  
+  // Handle goal_hours
+  const goalIdx = parseParam('goal_hours');
+  if (goalIdx !== null) {
+    updates.goal_hours = params[goalIdx];
+  }
+  
+  // Handle color
+  const colorIdx = parseParam('color');
+  if (colorIdx !== null) {
+    updates.color = params[colorIdx];
+  }
+  
+  // Handle daily_goal_minutes
+  const dailyGoalIdx = parseParam('daily_goal_minutes');
+  if (dailyGoalIdx !== null) {
+    updates.daily_goal_minutes = params[dailyGoalIdx];
+  }
+  
+  console.log('[handleSkillUpdate] Updating skill:', id, 'with:', updates);
   await db.skills.update(id, updates);
 }
 
@@ -511,21 +625,89 @@ async function handleTaskUpdate(db: WebDatabase, query: string, params: any[]): 
   
   const updates: Partial<TaskRecord> = {};
   
-  if (queryLower.includes('status =')) {
-    const match = query.match(/status = \$(\d+)/i);
-    if (match) {
-      const paramIndex = parseInt(match[1]) - 1;
-      updates.status = params[paramIndex];
-      if (params[paramIndex] === 'done') {
-        updates.completed_at = new Date().toISOString();
-      }
+  // Parse each field with its parameter position dynamically
+  const parseParam = (field: string): number | null => {
+    const regex = new RegExp(`${field} = \\$(\\d+)`, 'i');
+    const match = query.match(regex);
+    return match ? parseInt(match[1]) - 1 : null;
+  };
+  
+  // Handle status
+  const statusIdx = parseParam('status');
+  if (statusIdx !== null) {
+    updates.status = params[statusIdx];
+    if (params[statusIdx] === 'done') {
+      updates.completed_at = new Date().toISOString();
     }
   }
   
-  if (queryLower.includes('title =')) {
-    updates.title = params[0];
+  // Handle title
+  const titleIdx = parseParam('title');
+  if (titleIdx !== null) {
+    updates.title = params[titleIdx];
   }
   
+  // Handle description
+  const descIdx = parseParam('description');
+  if (descIdx !== null) {
+    updates.description = params[descIdx];
+  }
+  
+  // Handle priority
+  const priorityIdx = parseParam('priority');
+  if (priorityIdx !== null) {
+    updates.priority = params[priorityIdx];
+  }
+  
+  // Handle due_date
+  const dueDateIdx = parseParam('due_date');
+  if (dueDateIdx !== null) {
+    updates.due_date = params[dueDateIdx] || undefined;
+  }
+  
+  // Handle estimated_pomodoros
+  const estimatedIdx = parseParam('estimated_pomodoros');
+  if (estimatedIdx !== null) {
+    updates.estimated_pomodoros = params[estimatedIdx];
+  }
+  
+  // Handle total_minutes (direct set)
+  const totalMinIdx = parseParam('total_minutes');
+  if (totalMinIdx !== null && !queryLower.includes('total_minutes = total_minutes +')) {
+    updates.total_minutes = params[totalMinIdx];
+  }
+  
+  // Handle total_minutes increment: total_minutes = total_minutes + $N
+  if (queryLower.includes('total_minutes = total_minutes +')) {
+    const match = query.match(/total_minutes = total_minutes \+ \$(\d+)/i);
+    if (match) {
+      const paramIndex = parseInt(match[1]) - 1;
+      updates.total_minutes = task.total_minutes + params[paramIndex];
+    }
+  }
+  
+  // Handle pomodoro_sessions (direct set)
+  const pomodoroIdx = parseParam('pomodoro_sessions');
+  if (pomodoroIdx !== null && !queryLower.includes('pomodoro_sessions = pomodoro_sessions +')) {
+    updates.pomodoro_sessions = params[pomodoroIdx];
+  }
+  
+  // Handle pomodoro_sessions increment
+  if (queryLower.includes('pomodoro_sessions = pomodoro_sessions +')) {
+    const match = query.match(/pomodoro_sessions = pomodoro_sessions \+ \$(\d+)/i);
+    if (match) {
+      const paramIndex = parseInt(match[1]) - 1;
+      updates.pomodoro_sessions = task.pomodoro_sessions + params[paramIndex];
+    }
+  }
+  
+  // Handle order_index
+  const orderIdx = parseParam('order_index');
+  if (orderIdx !== null) {
+    updates.order_index = params[orderIdx];
+  }
+  
+  console.log('[handleTaskUpdate] Updating task:', id, 'with:', updates);
   await db.tasks.update(id, updates);
 }
 
@@ -540,11 +722,11 @@ async function handleTimerSessionInsert(db: WebDatabase, params: any[]): Promise
     task_id: params[1] === null ? undefined : params[1],
     skill_id: params[2],
     start_time: params[3],
-    end_time: undefined,
-    duration: params[4],
-    type: params[5],
-    completed: params[6] ? 1 : 0,
-    created_at: now,
+    end_time: params[4] || undefined, // Support end_time in insert
+    duration: params[5],
+    type: params[6],
+    completed: params[7] ? 1 : 0,
+    created_at: params[8] || now,
   });
 }
 
@@ -553,14 +735,40 @@ async function handleTimerSessionUpdate(db: WebDatabase, query: string, params: 
   const queryLower = query.toLowerCase();
   const updates: Partial<TimerSessionRecord> = {};
   
-  if (queryLower.includes('end_time =')) {
-    updates.end_time = params[0];
+  // Parse SET clause to extract field assignments
+  // Handle patterns like: SET end_time = $1, completed = 1, duration = $2 WHERE id = $3
+  
+  // Check for literal completed = 1 (not a parameter)
+  if (queryLower.includes('completed = 1')) {
+    updates.completed = 1;
+  } else if (queryLower.includes('completed = 0')) {
+    updates.completed = 0;
   }
-  if (queryLower.includes('completed =')) {
-    updates.completed = params[0];
-  }
-  if (queryLower.includes('duration =')) {
-    updates.duration = params[0];
+  
+  // Parse parameterized fields by checking SET clause
+  const setMatch = query.match(/SET\s+(.+?)\s+WHERE/i);
+  if (setMatch) {
+    const setClause = setMatch[1];
+    const assignments = setClause.split(',').map(s => s.trim());
+    
+    let paramIndex = 0;
+    assignments.forEach(assignment => {
+      const [field] = assignment.split('=').map(s => s.trim().toLowerCase());
+      const hasParam = assignment.includes('$');
+      
+      if (hasParam) {
+        if (field === 'end_time') {
+          updates.end_time = params[paramIndex];
+          paramIndex++;
+        } else if (field === 'duration') {
+          updates.duration = params[paramIndex];
+          paramIndex++;
+        } else if (field === 'completed') {
+          updates.completed = params[paramIndex];
+          paramIndex++;
+        }
+      }
+    });
   }
   
   await db.timerSessions.update(id, updates);
