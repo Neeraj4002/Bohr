@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Modal, ConfirmDialog } from '@/components/ui/modal';
 import { SkeletonKanban } from '@/components/ui/skeleton';
-import { Plus, Play, Trash2, Clock, Calendar, Pencil, Target, Filter, CheckCircle2, Circle, AlertCircle, Zap, ArrowRight } from 'lucide-react';
+import { Plus, Play, Trash2, Clock, ChevronDown, CheckCircle2 } from 'lucide-react';
 import { Task, TaskStatus, TaskPriority } from '@/types';
 import { cn, formatDate } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -31,35 +31,9 @@ import {
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
-// Google Material Design colors and priority configurations
-const PRIORITY_COLORS: Record<TaskPriority, string> = {
-  low: 'text-slate-500',
-  medium: 'text-blue-600',
-  high: 'text-amber-600',
-  urgent: 'text-red-600',
-};
-
-
-
-const PRIORITY_ICONS: Record<TaskPriority, typeof Circle> = {
-  low: Circle,
-  medium: AlertCircle,
-  high: Zap,
-  urgent: AlertCircle,
-};
-
-const STATUS_ICONS: Record<TaskStatus, typeof Circle> = {
-  'todo': Circle,
-  'in-progress': Clock,
-  'done': CheckCircle2,
-};
-
-const STATUS_COLORS: Record<TaskStatus, string> = {
-  'todo': 'text-slate-500',
-  'in-progress': 'text-blue-500',
-  'done': 'text-green-500',
-};
-
+// ============================================
+// MATERIAL DESIGN TASK CARD
+// ============================================
 interface TaskCardProps {
   task: Task;
   onEdit: (task: Task) => void;
@@ -67,7 +41,7 @@ interface TaskCardProps {
   onStartTimer: (taskId: string, skillId: string) => void;
 }
 
-function TaskCard({ task, onEdit, onDelete, onStartTimer }: TaskCardProps) {
+function TaskCard({ task, onEdit, onDelete: _onDelete, onStartTimer: _onStartTimer }: TaskCardProps) {
   const {
     attributes,
     listeners,
@@ -80,142 +54,84 @@ function TaskCard({ task, onEdit, onDelete, onStartTimer }: TaskCardProps) {
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
-    opacity: isDragging ? 0.5 : 1,
   };
 
-  const isOverdue = task.dueDate && new Date(task.dueDate) < new Date() && task.status !== 'done';
-  const progress = (task.pomodoroSessions / (task.estimatedPomodoros || 1)) * 100;
-  const PriorityIcon = PRIORITY_ICONS[task.priority || 'medium'];
+  const isCompleted = task.status === 'done';
+  const progress = task.pomodoroSessions || 0;
+  const estimated = task.estimatedPomodoros || 1;
 
   return (
     <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
-      <div className={cn(
-        "relative bg-white dark:bg-card rounded-2xl border border-gray-100 dark:border-gray-800 p-5 mb-4 transition-all duration-200 cursor-grab active:cursor-grabbing group hover:shadow-lg hover:border-gray-200 dark:hover:border-gray-700",
-        isDragging && "shadow-2xl scale-105 rotate-1 z-50",
-        isOverdue && "border-red-200 dark:border-red-800 bg-red-50/50 dark:bg-red-950/20",
-        task.status === 'done' && "opacity-75"
-      )}>
-        {/* Priority indicator bar */}
-        <div 
-          className={cn(
-            "absolute top-0 left-0 w-full h-1 rounded-t-2xl",
-            task.priority === 'urgent' && "bg-red-500",
-            task.priority === 'high' && "bg-amber-500",
-            task.priority === 'medium' && "bg-blue-500",
-            task.priority === 'low' && "bg-slate-400"
+      <div 
+        className={cn(
+          // Base card styling - Material Design Elevation 1
+          "bg-white dark:bg-gray-900 rounded-lg p-4 mb-3 cursor-grab active:cursor-grabbing",
+          "shadow-[0_1px_3px_rgba(0,0,0,0.12),0_1px_2px_rgba(0,0,0,0.24)]",
+          "transition-all duration-200 ease-out",
+          // Hover state - increased elevation
+          "hover:shadow-[0_3px_6px_rgba(0,0,0,0.16),0_3px_6px_rgba(0,0,0,0.23)]",
+          // Dragging state - Elevation 6
+          isDragging && "shadow-[0_10px_20px_rgba(0,0,0,0.19),0_6px_6px_rgba(0,0,0,0.23)] scale-[1.02] rotate-[1deg] z-50 opacity-95",
+          // Completed state
+          isCompleted && "opacity-70"
+        )}
+        onClick={(e) => {
+          // Only open edit modal if not dragging
+          if (!isDragging) {
+            e.stopPropagation();
+            onEdit(task);
+          }
+        }}
+      >
+        {/* Task Title */}
+        <h4 className={cn(
+          "font-medium text-[15px] text-[#202124] dark:text-gray-100 leading-snug mb-1",
+          isCompleted && "line-through text-gray-500 dark:text-gray-500"
+        )}>
+          {task.title}
+        </h4>
+
+        {/* Task Description */}
+        {task.description && (
+          <p className="text-[13px] text-[#5f6368] dark:text-gray-400 line-clamp-2 mb-3 leading-relaxed">
+            {task.description}
+          </p>
+        )}
+
+        {/* Bottom row: Progress + Due Date */}
+        <div className="flex items-center justify-between mt-2">
+          {/* Progress indicator */}
+          <div className="flex items-center gap-1.5 text-[12px] text-[#5f6368] dark:text-gray-400">
+            {isCompleted ? (
+              <CheckCircle2 className="w-4 h-4 text-[#34A853]" />
+            ) : (
+              <Clock className="w-4 h-4" />
+            )}
+            <span className={cn(isCompleted && "text-[#34A853] font-medium")}>
+              {progress}/{estimated}
+            </span>
+          </div>
+
+          {/* Due date if exists */}
+          {task.dueDate && (
+            <span className={cn(
+              "text-[11px] px-2 py-0.5 rounded-full",
+              new Date(task.dueDate) < new Date() && !isCompleted
+                ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                : "bg-gray-100 text-[#5f6368] dark:bg-gray-800 dark:text-gray-400"
+            )}>
+              {formatDate(task.dueDate)}
+            </span>
           )}
-        />
-
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex-1 min-w-0">
-            {/* Header */}
-            <div className="flex items-start gap-3 mb-3">
-              <div className="flex-shrink-0 mt-0.5">
-                <PriorityIcon className={cn("w-4 h-4", PRIORITY_COLORS[task.priority || 'medium'])} />
-              </div>
-              <div className="flex-1">
-                <h3 className={cn(
-                  "font-medium text-base leading-tight mb-1",
-                  task.status === 'done' ? "line-through text-gray-500" : "text-gray-900 dark:text-gray-100"
-                )}>
-                  {task.title}
-                </h3>
-                {task.description && (
-                  <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2 leading-relaxed">
-                    {task.description}
-                  </p>
-                )}
-              </div>
-            </div>
-
-            {/* Progress section */}
-            <div className="mb-3">
-              <div className="flex items-center justify-between text-sm mb-2">
-                <span className="text-gray-600 dark:text-gray-400 font-medium">
-                  Progress: {task.pomodoroSessions}/{task.estimatedPomodoros || 1} sessions
-                </span>
-                <span className="text-gray-500 text-xs">
-                  {Math.round(progress)}%
-                </span>
-              </div>
-              <div className="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-2">
-                <div 
-                  className={cn(
-                    "h-2 rounded-full transition-all duration-300",
-                    task.status === 'done' ? "bg-green-500" : "bg-blue-500"
-                  )}
-                  style={{ width: `${Math.min(progress, 100)}%` }}
-                />
-              </div>
-            </div>
-
-            {/* Meta information */}
-            <div className="flex flex-wrap items-center gap-4 text-xs">
-              {task.dueDate && (
-                <span className={cn(
-                  "flex items-center gap-1.5 px-2 py-1 rounded-md font-medium",
-                  isOverdue 
-                    ? "text-red-700 bg-red-100 dark:text-red-300 dark:bg-red-900/30" 
-                    : "text-gray-600 bg-gray-100 dark:text-gray-400 dark:bg-gray-800"
-                )}>
-                  <Calendar className="w-3 h-3" />
-                  {formatDate(task.dueDate)}
-                </span>
-              )}
-              <span className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 font-medium">
-                <Clock className="w-3 h-3" />
-                {Math.round((task.totalMinutes || 0) / 60)}h total
-              </span>
-            </div>
-          </div>
-          {/* Action buttons */}
-          <div className="flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-all duration-200">
-            <div className="flex items-center gap-1">
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onEdit(task);
-                }}
-                className="h-8 w-8 p-0 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-                title="Edit task"
-              >
-                <Pencil className="w-3.5 h-3.5 text-gray-600 dark:text-gray-400" />
-              </Button>
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onStartTimer(task.id, task.skillId);
-                }}
-                className="h-8 w-8 p-0 rounded-full text-green-600 hover:text-green-700 hover:bg-green-50 dark:hover:bg-green-900/30 transition-colors"
-                title="Start focus session"
-                disabled={task.status === 'done'}
-              >
-                <Play className="w-3.5 h-3.5" />
-              </Button>
-            </div>
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={(e) => {
-                e.stopPropagation();
-                onDelete(task.id);
-              }}
-              className="h-8 w-8 p-0 rounded-full text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors"
-              title="Delete task"
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-            </Button>
-          </div>
         </div>
       </div>
     </div>
   );
 }
 
+// ============================================
+// MATERIAL DESIGN KANBAN COLUMN
+// ============================================
 interface KanbanColumnProps {
   title: string;
   status: TaskStatus;
@@ -223,119 +139,73 @@ interface KanbanColumnProps {
   onEdit: (task: Task) => void;
   onDelete: (id: string) => void;
   onStartTimer: (taskId: string, skillId: string) => void;
+  isLast?: boolean;
 }
 
-function KanbanColumn({ title, status, tasks, onEdit, onDelete, onStartTimer }: KanbanColumnProps) {
+function KanbanColumn({ title, status, tasks, onEdit, onDelete, onStartTimer, isLast }: KanbanColumnProps) {
   const taskIds = tasks.map(t => t.id);
-  const isTodo = status === 'todo';
-  const isInProgress = status === 'in-progress';
-  const isDone = status === 'done';
   
-  // Make the column itself droppable
   const { setNodeRef, isOver } = useDroppable({
     id: `column-${status}`,
     data: { status },
   });
 
-  const StatusIcon = STATUS_ICONS[status];
-
   return (
-    <div 
-      className="flex-1 min-w-[320px] max-w-[400px]"
-      data-status={status}
-    >
-      <div className={cn(
-        "bg-gray-50/80 dark:bg-gray-900/50 rounded-3xl p-6 transition-all duration-300 border border-gray-100 dark:border-gray-800",
-        isOver && "ring-2 ring-blue-500 ring-offset-2 dark:ring-offset-gray-900 bg-blue-50/50 dark:bg-blue-950/20"
-      )}>
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
+    <div className={cn(
+      "flex-1 min-w-[280px] max-w-[360px] flex flex-col",
+      !isLast && "border-r border-[#E0E0E0] dark:border-gray-800"
+    )}>
+      {/* Column Header */}
+      <div className="px-4 py-3 flex items-center gap-2">
+        <h3 className="font-medium text-[14px] text-[#202124] dark:text-gray-200 uppercase tracking-wide">
+          {title}
+        </h3>
+        <span className="bg-[#E8EAED] dark:bg-gray-700 text-[#5f6368] dark:text-gray-300 text-[12px] font-medium px-2 py-0.5 rounded-full min-w-[24px] text-center">
+          {tasks.length}
+        </span>
+      </div>
+
+      {/* Column Content */}
+      <SortableContext items={taskIds} strategy={verticalListSortingStrategy}>
+        <div 
+          ref={setNodeRef}
+          className={cn(
+            "flex-1 px-3 pb-4 transition-colors duration-200 rounded-lg mx-1 min-h-[400px]",
+            isOver && "bg-[#E8F0FE] dark:bg-blue-900/20 ring-2 ring-[#1A73E8] ring-inset"
+          )}
+        >
+          {tasks.map((task) => (
+            <TaskCard
+              key={task.id}
+              task={task}
+              onEdit={onEdit}
+              onDelete={onDelete}
+              onStartTimer={onStartTimer}
+            />
+          ))}
+          
+          {/* Empty state */}
+          {tasks.length === 0 && (
             <div className={cn(
-              "w-10 h-10 rounded-2xl flex items-center justify-center",
-              isTodo && "bg-slate-100 dark:bg-slate-800",
-              isInProgress && "bg-blue-100 dark:bg-blue-900",
-              isDone && "bg-green-100 dark:bg-green-900"
+              "py-8 text-center transition-all duration-200",
+              isOver ? "opacity-0" : "opacity-100"
             )}>
-              <StatusIcon className={cn(
-                "w-5 h-5",
-                STATUS_COLORS[status]
-              )} />
-            </div>
-            <div>
-              <h3 className={cn(
-                "font-semibold text-lg tracking-tight",
-                isTodo && "text-slate-700 dark:text-slate-300",
-                isInProgress && "text-blue-700 dark:text-blue-300", 
-                isDone && "text-green-700 dark:text-green-300"
-              )}>
-                {title}
-              </h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-                {status === 'todo' && 'Ready to start'}
-                {status === 'in-progress' && 'Currently working'}
-                {status === 'done' && 'Completed tasks'}
+              <p className="text-[13px] text-[#9AA0A6] dark:text-gray-500">
+                {status === 'todo' && 'No tasks to do'}
+                {status === 'in-progress' && 'Nothing in progress'}
+                {status === 'done' && 'No completed tasks'}
               </p>
             </div>
-          </div>
-          <div className={cn(
-            "flex items-center justify-center w-8 h-8 rounded-xl font-bold text-sm",
-            isTodo && "bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-300",
-            isInProgress && "bg-blue-200 text-blue-700 dark:bg-blue-700 dark:text-blue-300",
-            isDone && "bg-green-200 text-green-700 dark:bg-green-700 dark:text-green-300"
-          )}>
-            {tasks.length}
-          </div>
+          )}
         </div>
-        
-        <SortableContext items={taskIds} strategy={verticalListSortingStrategy}>
-          <div 
-            ref={setNodeRef}
-            className={cn(
-              "space-y-3 min-h-[300px] rounded-2xl transition-colors p-2",
-              isOver && "bg-blue-50/50 dark:bg-blue-950/20"
-            )}
-            data-droppable-status={status}
-          >
-            {tasks.map((task) => (
-              <TaskCard
-                key={task.id}
-                task={task}
-                onEdit={onEdit}
-                onDelete={onDelete}
-                onStartTimer={onStartTimer}
-              />
-            ))}
-            {tasks.length === 0 && (
-              <div className={cn(
-                "text-center py-12 text-gray-400 border-2 border-dashed rounded-2xl transition-all duration-200 bg-white/50 dark:bg-gray-800/50",
-                isOver ? "border-blue-300 bg-blue-50 dark:bg-blue-950/30 text-blue-500" : "border-gray-200 dark:border-gray-700"
-              )}>
-                <div className={cn(
-                  "w-16 h-16 mx-auto rounded-2xl flex items-center justify-center mb-3",
-                  isOver ? "bg-blue-100 dark:bg-blue-900" : "bg-gray-100 dark:bg-gray-800"
-                )}>
-                  <StatusIcon className={cn(
-                    "w-8 h-8",
-                    isOver ? "text-blue-500" : "text-gray-400"
-                  )} />
-                </div>
-                <p className="text-sm font-medium">
-                  {isOver ? "Drop task here" : "No tasks yet"}
-                </p>
-                <p className="text-xs text-gray-400 mt-1">
-                  {status === 'todo' && 'Add new tasks to get started'}
-                  {status === 'in-progress' && 'Move tasks here when working'}
-                  {status === 'done' && 'Completed tasks will appear here'}
-                </p>
-              </div>
-            )}
-          </div>
-        </SortableContext>
-      </div>
+      </SortableContext>
     </div>
   );
 }
 
+// ============================================
+// TASK FORM DATA
+// ============================================
 interface TaskFormData {
   title: string;
   description: string;
@@ -356,6 +226,9 @@ const defaultTaskForm: TaskFormData = {
   totalMinutes: 0,
 };
 
+// ============================================
+// MAIN TASKS PAGE COMPONENT
+// ============================================
 export default function Tasks() {
   const navigate = useNavigate();
   const { skills, activeSkill, fetchSkills } = useSkillsStore();
@@ -370,6 +243,7 @@ export default function Tasks() {
   const [formData, setFormData] = useState<TaskFormData>(defaultTaskForm);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [showSkillDropdown, setShowSkillDropdown] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -393,6 +267,15 @@ export default function Tasks() {
       fetchTasks(selectedSkillId);
     }
   }, [selectedSkillId, fetchTasks]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = () => setShowSkillDropdown(false);
+    if (showSkillDropdown) {
+      document.addEventListener('click', handleClickOutside);
+      return () => document.removeEventListener('click', handleClickOutside);
+    }
+  }, [showSkillDropdown]);
 
   const openCreateModal = () => {
     setEditingTask(null);
@@ -550,227 +433,212 @@ export default function Tasks() {
   const selectedSkill = skills.find(s => s.id === selectedSkillId);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950">
-      <div className="h-full overflow-y-auto">
-        <div className="max-w-[1400px] mx-auto p-8">
-          {/* Header Section */}
-          <div className="mb-8">
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-4">
-                <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center">
-                  <Target className="w-7 h-7 text-white" />
-                </div>
-                <div>
-                  <h1 className="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">
-                    Task Management
-                  </h1>
-                  <p className="text-gray-600 dark:text-gray-400 mt-1">
-                    Organize and track your progress with intelligent Kanban boards
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  className="gap-2 rounded-xl border-gray-200 hover:bg-gray-50"
-                >
-                  <Filter className="w-4 h-4" />
-                  Filter
-                </Button>
-                <Button 
-                  onClick={openCreateModal} 
-                  disabled={!selectedSkillId}
-                  className="gap-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-xl px-6 shadow-lg hover:shadow-xl transition-all duration-200"
-                >
-                  <Plus className="w-4 h-4" />
-                  Add Task
-                </Button>
-              </div>
-            </div>
+    <div className="h-full flex flex-col bg-white dark:bg-gray-950">
+      {/* ========== HEADER AREA ========== */}
+      <div className="px-6 pt-6 pb-4 border-b border-[#E0E0E0] dark:border-gray-800">
+        {/* Title */}
+        <h1 className="text-[28px] font-bold text-[#202124] dark:text-white tracking-tight mb-4">
+          Tasks
+        </h1>
 
-            {/* Skill Selector Card */}
-            <div className="bg-white dark:bg-gray-900 rounded-3xl p-6 border border-gray-100 dark:border-gray-800 shadow-sm">
-              <div className="flex items-center gap-6">
-                <div className="w-12 h-12 rounded-2xl bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
-                  <Target className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-                </div>
-                <div className="flex-1">
-                  <label className="text-sm font-semibold text-gray-700 dark:text-gray-300 block mb-2">
-                    Active Skill Context
-                  </label>
-                  <select
-                    value={selectedSkillId}
-                    onChange={(e) => setSelectedSkillId(e.target.value)}
-                    className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 dark:text-gray-100 font-medium"
+        {/* Skill Selector Chip */}
+        <div className="relative inline-block">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowSkillDropdown(!showSkillDropdown);
+            }}
+            className={cn(
+              "flex items-center gap-2 px-4 py-2 rounded-full text-[14px] font-medium transition-all",
+              "bg-[#F1F3F4] dark:bg-gray-800 hover:bg-[#E8EAED] dark:hover:bg-gray-700",
+              "text-[#3C4043] dark:text-gray-300",
+              "border border-transparent hover:border-[#DADCE0] dark:hover:border-gray-600"
+            )}
+          >
+            {selectedSkill ? (
+              <>
+                <span 
+                  className="w-2.5 h-2.5 rounded-full" 
+                  style={{ backgroundColor: selectedSkill.color }}
+                />
+                {selectedSkill.name}
+              </>
+            ) : (
+              'Select Skill'
+            )}
+            <ChevronDown className="w-4 h-4 text-[#5f6368]" />
+          </button>
+
+          {/* Dropdown Menu */}
+          {showSkillDropdown && (
+            <div className="absolute top-full left-0 mt-1 w-56 bg-white dark:bg-gray-900 rounded-lg shadow-[0_4px_6px_rgba(0,0,0,0.1),0_1px_3px_rgba(0,0,0,0.08)] border border-[#DADCE0] dark:border-gray-700 py-1 z-50">
+              {skills.length === 0 ? (
+                <p className="px-4 py-3 text-[13px] text-[#5f6368]">No skills found</p>
+              ) : (
+                skills.map((skill) => (
+                  <button
+                    key={skill.id}
+                    onClick={() => {
+                      setSelectedSkillId(skill.id);
+                      setShowSkillDropdown(false);
+                    }}
+                    className={cn(
+                      "w-full flex items-center gap-3 px-4 py-2.5 text-left text-[14px] transition-colors",
+                      "hover:bg-[#F1F3F4] dark:hover:bg-gray-800",
+                      selectedSkillId === skill.id && "bg-[#E8F0FE] dark:bg-blue-900/30"
+                    )}
                   >
-                    <option value="">Select a skill to manage tasks...</option>
-                    {skills.map((skill) => (
-                      <option key={skill.id} value={skill.id}>
-                        {skill.name} • {Math.floor(skill.currentMinutes / 60)}h logged • {tasks.filter(t => t.skillId === skill.id).length} tasks
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                {selectedSkill && (
-                  <div className="text-right">
-                    <div className="flex items-baseline gap-1">
-                      <span className="text-3xl font-bold text-blue-600">{tasks.length}</span>
-                      <span className="text-sm text-gray-500">tasks</span>
-                    </div>
-                    <div className="text-xs text-gray-500 mt-1">
-                      {tasks.filter(t => t.status === 'done').length} completed
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Loading State */}
-          {loading && <SkeletonKanban />}
-
-          {/* Kanban Board */}
-          {selectedSkillId && !loading ? (
-            <div className="space-y-6">
-              {/* Board Stats */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 border border-gray-100 dark:border-gray-800">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
-                      <Circle className="w-6 h-6 text-slate-600" />
-                    </div>
-                    <div>
-                      <div className="text-2xl font-bold text-gray-900 dark:text-white">{todoTasks.length}</div>
-                      <div className="text-sm text-gray-500">To Do</div>
-                    </div>
-                  </div>
-                </div>
-                <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 border border-gray-100 dark:border-gray-800">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-xl bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
-                      <Clock className="w-6 h-6 text-blue-600" />
-                    </div>
-                    <div>
-                      <div className="text-2xl font-bold text-gray-900 dark:text-white">{inProgressTasks.length}</div>
-                      <div className="text-sm text-gray-500">In Progress</div>
-                    </div>
-                  </div>
-                </div>
-                <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 border border-gray-100 dark:border-gray-800">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-xl bg-green-100 dark:bg-green-900 flex items-center justify-center">
-                      <CheckCircle2 className="w-6 h-6 text-green-600" />
-                    </div>
-                    <div>
-                      <div className="text-2xl font-bold text-gray-900 dark:text-white">{doneTasks.length}</div>
-                      <div className="text-sm text-gray-500">Completed</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <DndContext
-                sensors={sensors}
-                collisionDetection={closestCorners}
-                onDragStart={handleDragStart}
-                onDragEnd={handleDragEnd}
-              >
-                <div className="flex gap-6 overflow-x-auto pb-6">
-                  <KanbanColumn
-                    title="To Do"
-                    status="todo"
-                    tasks={todoTasks}
-                    onEdit={openEditModal}
-                    onDelete={confirmDelete}
-                    onStartTimer={handleStartTimer}
-                  />
-                  <KanbanColumn
-                    title="In Progress"
-                    status="in-progress"
-                    tasks={inProgressTasks}
-                    onEdit={openEditModal}
-                    onDelete={confirmDelete}
-                    onStartTimer={handleStartTimer}
-                  />
-                  <KanbanColumn
-                    title="Done"
-                    status="done"
-                    tasks={doneTasks}
-                    onEdit={openEditModal}
-                    onDelete={confirmDelete}
-                    onStartTimer={handleStartTimer}
-                  />
-                </div>
-                <DragOverlay>
-                  {activeTask ? (
-                    <div className="shadow-2xl p-5 rounded-2xl bg-white dark:bg-card border border-gray-200 dark:border-gray-700 rotate-2 scale-105">
-                      <h3 className="font-medium text-base text-gray-900 dark:text-white">{activeTask.title}</h3>
-                      <p className="text-sm text-gray-500 mt-1">Moving task...</p>
-                    </div>
-                  ) : null}
-                </DragOverlay>
-              </DndContext>
-            </div>
-          ) : !loading && (
-            <div className="bg-white dark:bg-gray-900 rounded-3xl border-2 border-dashed border-gray-200 dark:border-gray-700 p-16">
-              <div className="text-center">
-                <div className="w-20 h-20 rounded-3xl bg-blue-100 dark:bg-blue-900 flex items-center justify-center mx-auto mb-6">
-                  <Target className="w-10 h-10 text-blue-600 dark:text-blue-400" />
-                </div>
-                <h3 className="text-xl font-semibold mb-3 text-gray-900 dark:text-white">Select a Skill to Begin</h3>
-                <p className="text-gray-500 dark:text-gray-400 max-w-sm mx-auto leading-relaxed">
-                  Choose a skill from the dropdown above to view and manage its tasks in our intelligent Kanban board.
-                </p>
-                <Button 
-                  className="mt-6 gap-2 bg-blue-500 hover:bg-blue-600 text-white rounded-xl"
-                  onClick={() => {
-                    // Focus the select element
-                    const select = document.querySelector('select');
-                    select?.focus();
-                  }}
-                >
-                  <ArrowRight className="w-4 h-4" />
-                  Get Started
-                </Button>
-              </div>
+                    <span 
+                      className="w-3 h-3 rounded-full flex-shrink-0" 
+                      style={{ backgroundColor: skill.color }}
+                    />
+                    <span className="text-[#202124] dark:text-gray-200 truncate">{skill.name}</span>
+                    {selectedSkillId === skill.id && (
+                      <CheckCircle2 className="w-4 h-4 text-[#1A73E8] ml-auto flex-shrink-0" />
+                    )}
+                  </button>
+                ))
+              )}
             </div>
           )}
+        </div>
+      </div>
 
-      {/* Task Modal */}
+      {/* ========== MAIN KANBAN BOARD ========== */}
+      <div className="flex-1 overflow-hidden">
+        {loading && <SkeletonKanban />}
+
+        {selectedSkillId && !loading ? (
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCorners}
+            onDragStart={handleDragStart}
+            onDragEnd={handleDragEnd}
+          >
+            <div className="flex h-full overflow-x-auto">
+              <KanbanColumn
+                title="To Do"
+                status="todo"
+                tasks={todoTasks}
+                onEdit={openEditModal}
+                onDelete={confirmDelete}
+                onStartTimer={handleStartTimer}
+              />
+              <KanbanColumn
+                title="In Progress"
+                status="in-progress"
+                tasks={inProgressTasks}
+                onEdit={openEditModal}
+                onDelete={confirmDelete}
+                onStartTimer={handleStartTimer}
+              />
+              <KanbanColumn
+                title="Done"
+                status="done"
+                tasks={doneTasks}
+                onEdit={openEditModal}
+                onDelete={confirmDelete}
+                onStartTimer={handleStartTimer}
+                isLast
+              />
+            </div>
+
+            {/* Drag Overlay - The "lifted" card */}
+            <DragOverlay>
+              {activeTask ? (
+                <div className="bg-white dark:bg-gray-900 rounded-lg p-4 shadow-[0_10px_20px_rgba(0,0,0,0.19),0_6px_6px_rgba(0,0,0,0.23)] rotate-[2deg] scale-105">
+                  <h4 className="font-medium text-[15px] text-[#202124] dark:text-gray-100">
+                    {activeTask.title}
+                  </h4>
+                  {activeTask.description && (
+                    <p className="text-[13px] text-[#5f6368] dark:text-gray-400 line-clamp-1 mt-1">
+                      {activeTask.description}
+                    </p>
+                  )}
+                </div>
+              ) : null}
+            </DragOverlay>
+          </DndContext>
+        ) : !loading && (
+          <div className="flex items-center justify-center h-full">
+            <div className="text-center py-16 px-4">
+              <div className="w-16 h-16 rounded-full bg-[#F1F3F4] dark:bg-gray-800 flex items-center justify-center mx-auto mb-4">
+                <Clock className="w-8 h-8 text-[#5f6368]" />
+              </div>
+              <h3 className="text-[18px] font-medium text-[#202124] dark:text-white mb-2">
+                Select a skill to view tasks
+              </h3>
+              <p className="text-[14px] text-[#5f6368] max-w-sm">
+                Choose a skill from the dropdown above to see and manage its tasks
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ========== FLOATING ACTION BUTTON (FAB) ========== */}
+      {selectedSkillId && (
+        <button
+          onClick={openCreateModal}
+          className={cn(
+            "fixed bottom-6 right-6 w-14 h-14 rounded-full",
+            "bg-[#1A73E8] hover:bg-[#1765CC] active:bg-[#1557B0]",
+            "shadow-[0_3px_5px_-1px_rgba(0,0,0,0.2),0_6px_10px_0_rgba(0,0,0,0.14),0_1px_18px_0_rgba(0,0,0,0.12)]",
+            "hover:shadow-[0_5px_5px_-3px_rgba(0,0,0,0.2),0_8px_10px_1px_rgba(0,0,0,0.14),0_3px_14px_2px_rgba(0,0,0,0.12)]",
+            "flex items-center justify-center transition-all duration-200",
+            "focus:outline-none focus:ring-2 focus:ring-[#1A73E8] focus:ring-offset-2"
+          )}
+          title="Add Task"
+        >
+          <Plus className="w-6 h-6 text-white" />
+        </button>
+      )}
+
+      {/* ========== TASK DETAIL MODAL ========== */}
       <Modal
         open={showTaskModal}
         onClose={() => setShowTaskModal(false)}
-        title={editingTask ? 'Edit Task' : 'Create Task'}
+        title={editingTask ? 'Edit Task' : 'New Task'}
         size="md"
       >
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Title *</label>
+        <div className="space-y-5">
+          {/* Title */}
+          <div>
+            <label className="block text-[12px] font-medium text-[#5f6368] uppercase tracking-wide mb-1.5">
+              Title
+            </label>
             <Input
-              placeholder="Task title"
+              placeholder="What needs to be done?"
               value={formData.title}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-              autoFocus
+              className="text-[15px]"
             />
           </div>
 
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Description</label>
-            <Input
-              placeholder="Optional description"
+          {/* Description */}
+          <div>
+            <label className="block text-[12px] font-medium text-[#5f6368] uppercase tracking-wide mb-1.5">
+              Description
+            </label>
+            <textarea
+              placeholder="Add details..."
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              rows={3}
+              className="w-full px-3 py-2 text-[14px] border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-[#1A73E8] focus:border-transparent resize-none"
             />
           </div>
 
+          {/* Priority & Estimated Pomodoros */}
           <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Priority</label>
+            <div>
+              <label className="block text-[12px] font-medium text-[#5f6368] uppercase tracking-wide mb-1.5">
+                Priority
+              </label>
               <select
                 value={formData.priority}
                 onChange={(e) => setFormData({ ...formData, priority: e.target.value as TaskPriority })}
-                className="w-full p-2 border rounded-md bg-background"
+                className="w-full px-3 py-2 text-[14px] border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-[#1A73E8]"
               >
                 <option value="low">Low</option>
                 <option value="medium">Medium</option>
@@ -779,8 +647,10 @@ export default function Tasks() {
               </select>
             </div>
 
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Est. Pomodoros</label>
+            <div>
+              <label className="block text-[12px] font-medium text-[#5f6368] uppercase tracking-wide mb-1.5">
+                Est. Pomodoros
+              </label>
               <Input
                 type="number"
                 min={1}
@@ -791,8 +661,11 @@ export default function Tasks() {
             </div>
           </div>
 
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Due Date</label>
+          {/* Due Date */}
+          <div>
+            <label className="block text-[12px] font-medium text-[#5f6368] uppercase tracking-wide mb-1.5">
+              Due Date
+            </label>
             <Input
               type="date"
               value={formData.dueDate}
@@ -800,62 +673,98 @@ export default function Tasks() {
             />
           </div>
 
+          {/* Manual Time Adjustment (Edit mode only) */}
           {editingTask && (
-            <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 dark:bg-gray-900 rounded-xl">
-              <div className="space-y-2">
-                <label className="text-sm font-medium flex items-center gap-2">
-                  <Clock className="w-4 h-4 text-blue-500" />
-                  Completed Pomodoros
-                </label>
-                <Input
-                  type="number"
-                  min={0}
-                  max={100}
-                  value={formData.pomodoroSessions}
-                  onChange={(e) => setFormData({ ...formData, pomodoroSessions: parseInt(e.target.value) || 0 })}
-                />
-                <p className="text-xs text-gray-500">Sessions completed for this task</p>
+            <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+              <p className="text-[12px] font-medium text-[#5f6368] uppercase tracking-wide mb-3">
+                Progress Tracking
+              </p>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[12px] text-[#5f6368] mb-1.5">
+                    Completed Sessions
+                  </label>
+                  <Input
+                    type="number"
+                    min={0}
+                    value={formData.pomodoroSessions}
+                    onChange={(e) => setFormData({ ...formData, pomodoroSessions: parseInt(e.target.value) || 0 })}
+                  />
+                </div>
+                <div>
+                  <label className="block text-[12px] text-[#5f6368] mb-1.5">
+                    Total Minutes
+                  </label>
+                  <Input
+                    type="number"
+                    min={0}
+                    value={formData.totalMinutes}
+                    onChange={(e) => setFormData({ ...formData, totalMinutes: parseInt(e.target.value) || 0 })}
+                  />
+                </div>
               </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium flex items-center gap-2">
-                  <Clock className="w-4 h-4 text-green-500" />
-                  Total Time (minutes)
-                </label>
-                <Input
-                  type="number"
-                  min={0}
-                  value={formData.totalMinutes}
-                  onChange={(e) => setFormData({ ...formData, totalMinutes: parseInt(e.target.value) || 0 })}
-                />
-                <p className="text-xs text-gray-500">Manually adjust time spent</p>
-              </div>
+            </div>
+          )}
+
+          {/* Actions in Edit Mode */}
+          {editingTask && (
+            <div className="flex items-center gap-2 pt-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleStartTimer(editingTask.id, editingTask.skillId)}
+                className="gap-2 text-[#34A853] border-[#34A853] hover:bg-[#34A853]/10"
+                disabled={editingTask.status === 'done'}
+              >
+                <Play className="w-4 h-4" />
+                Start Timer
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setShowTaskModal(false);
+                  confirmDelete(editingTask.id);
+                }}
+                className="gap-2 text-red-600 border-red-300 hover:bg-red-50"
+              >
+                <Trash2 className="w-4 h-4" />
+                Delete
+              </Button>
             </div>
           )}
         </div>
 
-        <div className="flex gap-3 mt-6 justify-end">
-          <Button variant="outline" onClick={() => setShowTaskModal(false)}>
+        {/* Modal Footer */}
+        <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+          <Button 
+            variant="ghost" 
+            onClick={() => setShowTaskModal(false)}
+            className="text-[#5f6368] hover:bg-[#F1F3F4]"
+          >
             Cancel
           </Button>
-          <Button onClick={handleSaveTask} disabled={saving}>
-            {saving ? 'Saving...' : editingTask ? 'Save Changes' : 'Create Task'}
+          <Button 
+            onClick={handleSaveTask} 
+            disabled={saving}
+            className="bg-[#1A73E8] hover:bg-[#1765CC] text-white px-6"
+          >
+            {saving ? 'Saving...' : editingTask ? 'Save' : 'Create'}
           </Button>
         </div>
       </Modal>
 
-      {/* Delete Confirmation */}
+      {/* ========== DELETE CONFIRMATION ========== */}
       <ConfirmDialog
         open={showDeleteDialog}
         onClose={() => setShowDeleteDialog(false)}
         onConfirm={handleDeleteTask}
         title="Delete Task?"
-        description="This action cannot be undone. The task and all its data will be permanently deleted."
+        description="This action cannot be undone. The task will be permanently deleted."
         confirmText="Delete"
         variant="destructive"
         loading={saving}
       />
-        </div>
-      </div>
     </div>
   );
 }
